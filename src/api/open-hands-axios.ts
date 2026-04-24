@@ -1,8 +1,36 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { getAgentServerBaseUrl, getAgentServerHeaders } from "./agent-server-config";
 
+function serializeParams(params: Record<string, unknown> | URLSearchParams): string {
+  if (params instanceof URLSearchParams) {
+    return params.toString();
+  }
+
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null) {
+          searchParams.append(key, String(item));
+        }
+      });
+      return;
+    }
+
+    searchParams.append(key, String(value));
+  });
+
+  return searchParams.toString();
+}
+
 export const openHands = axios.create({
   baseURL: getAgentServerBaseUrl(),
+  paramsSerializer: { serialize: serializeParams },
 });
 
 openHands.interceptors.request.use((config: InternalAxiosRequestConfig) => {

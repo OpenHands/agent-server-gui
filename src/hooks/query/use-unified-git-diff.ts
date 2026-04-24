@@ -26,22 +26,28 @@ export const useUnifiedGitDiff = (config: UseUnifiedGitDiffConfig) => {
   const conversationUrl = conversation?.conversation_url;
   const sessionApiKey = conversation?.session_api_key;
   const selectedRepository = conversation?.selected_repository;
+  const workingDir = conversation?.workspace?.working_dir?.trim();
 
   // Sandbox grouping is enabled when strategy is not NO_GROUPING
   const useSandboxGrouping =
     settings?.sandbox_grouping_strategy !== "NO_GROUPING" &&
     settings?.sandbox_grouping_strategy !== undefined;
 
-  // For V1, we need to convert the relative file path to an absolute path
-  // The diff endpoint expects: /workspace/project/RepoName/relative/path
   const absoluteFilePath = React.useMemo(() => {
     const gitPath = getGitPath(
       conversationId,
       selectedRepository,
       useSandboxGrouping,
+      workingDir,
     );
     return `${gitPath}/${config.filePath}`;
-  }, [conversationId, selectedRepository, useSandboxGrouping, config.filePath]);
+  }, [
+    conversationId,
+    selectedRepository,
+    useSandboxGrouping,
+    config.filePath,
+    workingDir,
+  ]);
 
   return useQuery({
     queryKey: [

@@ -96,4 +96,23 @@ describe("getGitPath", () => {
       );
     });
   });
+
+  describe("with a backend-provided workspace path", () => {
+    it("prefers the explicit workspace path over derived git paths", () => {
+      expect(
+        getGitPath(
+          conversationId,
+          "OpenHands/software-agent-sdk",
+          true,
+          "/workspace/project/agent-server-gui",
+        ),
+      ).toBe("/workspace/project/agent-server-gui");
+    });
+
+    it("ignores blank workspace paths and falls back to heuristics", () => {
+      expect(getGitPath(conversationId, "OpenHands/software-agent-sdk", true, "  ")).toBe(
+        `/workspace/project/${conversationId}/software-agent-sdk`,
+      );
+    });
+  });
 });

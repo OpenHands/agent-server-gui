@@ -100,6 +100,10 @@ export interface V1AppConversationStartTaskPage {
   next_page_id: string | null;
 }
 
+export interface V1ConversationWorkspace {
+  working_dir: string | null;
+}
+
 export interface V1AppConversation {
   id: string;
   created_by_user_id: string | null;
@@ -118,6 +122,7 @@ export interface V1AppConversation {
   execution_status: V1ExecutionStatus | null;
   conversation_url: string | null;
   session_api_key: string | null;
+  workspace?: V1ConversationWorkspace | null;
   public?: boolean;
   sub_conversation_ids: string[];
 }

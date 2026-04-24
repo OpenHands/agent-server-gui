@@ -11,6 +11,7 @@ describe("mock conversation handlers", () => {
     expect(conversation?.id).toBe("1");
     expect(conversation?.title).toBe("My New Project");
     expect(conversation?.conversation_url).toContain("/api/conversations/1");
+    expect(conversation?.workspace?.working_dir).toBe("/workspace/project");
   });
 
   it("returns adapted conversation pages for search", async () => {

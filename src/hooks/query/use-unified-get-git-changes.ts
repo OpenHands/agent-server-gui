@@ -24,16 +24,22 @@ export const useUnifiedGetGitChanges = () => {
   const conversationUrl = conversation?.conversation_url;
   const sessionApiKey = conversation?.session_api_key;
   const selectedRepository = conversation?.selected_repository;
+  const workingDir = conversation?.workspace?.working_dir?.trim();
 
   // Sandbox grouping is enabled when strategy is not NO_GROUPING
   const useSandboxGrouping =
     settings?.sandbox_grouping_strategy !== "NO_GROUPING" &&
     settings?.sandbox_grouping_strategy !== undefined;
 
-  // Calculate git path based on selected repository and sandbox grouping strategy
   const gitPath = React.useMemo(
-    () => getGitPath(conversationId, selectedRepository, useSandboxGrouping),
-    [conversationId, selectedRepository, useSandboxGrouping],
+    () =>
+      getGitPath(
+        conversationId,
+        selectedRepository,
+        useSandboxGrouping,
+        workingDir,
+      ),
+    [conversationId, selectedRepository, useSandboxGrouping, workingDir],
   );
 
   const result = useQuery({
