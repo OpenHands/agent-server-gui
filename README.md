@@ -1,4 +1,93 @@
-# Getting Started with agent-server-gui
+# agent-server-gui
+
+## Run this with OpenHands Agent Server first
+
+If you only read one section of this README, read this one. Most users will want to clone this repo, point it at a real `openhands-agent-server`, and start using the UI immediately.
+
+### Prerequisites
+
+- Node.js 22.12.x or later
+- `npm`
+- A running OpenHands Agent Server (`openhands-agent-server`)
+
+### 1. Clone and install the frontend
+
+```sh
+git clone https://github.com/neubig/agent-server-gui.git
+cd agent-server-gui
+npm install
+```
+
+### 2. Install and start OpenHands Agent Server
+
+If you do not already have the backend installed, install it first:
+
+```sh
+python3 -m pip install openhands-agent-server
+```
+
+Then start the backend on the default local port:
+
+```sh
+openhands-agent-server --host 127.0.0.1 --port 8000
+```
+
+The frontend expects the backend at `127.0.0.1:8000` by default, so this is the easiest from-scratch setup.
+
+If you prefer installing from source or want the full SDK setup flow, see the OpenHands SDK docs: <https://docs.openhands.dev/sdk/getting-started>
+
+### 3. Optional: create a `.env` file
+
+If your backend is **not** running on `127.0.0.1:8000`, or if it requires a session API key, create a `.env` file:
+
+```sh
+cp .env.sample .env
+```
+
+Then update the values you need:
+
+```dotenv
+VITE_BACKEND_HOST="127.0.0.1:8000"
+VITE_BACKEND_BASE_URL="http://127.0.0.1:8000"
+VITE_FRONTEND_PORT="3001"
+# VITE_SESSION_API_KEY="your-session-api-key"
+# VITE_WORKING_DIR="/absolute/path/to/the-workspace-used-by-agent-server"
+```
+
+Notes:
+
+- `VITE_BACKEND_HOST` is used by the Vite dev proxy for `/api`, `/server_info`, and `/sockets`.
+- `VITE_BACKEND_BASE_URL` is used by browser-side direct requests. Keep it pointed at the same backend.
+- `VITE_WORKING_DIR` should match the workspace path the backend will use when starting new conversations.
+- If your backend does not require `X-Session-API-Key`, leave `VITE_SESSION_API_KEY` unset.
+
+### 4. Start the frontend
+
+```sh
+npm run dev
+```
+
+This starts the frontend on [http://localhost:3001](http://localhost:3001).
+
+### 5. First-run sanity check
+
+After the page opens:
+
+- `/` should load without errors
+- you should be able to open or create a conversation
+- `/conversations/:id` should load conversation content
+- `/settings` should load
+  - if your backend does not expose settings schemas, the UI will show `SDK settings schema unavailable.` instead of crashing
+
+### Mock mode
+
+If you want to run the frontend without a live backend, use:
+
+```sh
+npm run dev:mock
+# or
+npm run dev:mock:saas
+```
 
 ## Overview
 
@@ -16,46 +105,7 @@ This repository is a near-direct port of the OpenHands frontend adapted to talk 
 - Vitest
 - Mock Service Worker
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 22.12.x or later
-- `npm`, `bun`, or any other package manager that supports the `package.json` file
-
-### Installation
-
-```sh
-# Clone the repository
-git clone https://github.com/neubig/agent-server-gui.git
-
-# Change to the project directory
-cd agent-server-gui
-
-# Install the dependencies
-npm install
-```
-
-### Running the Application in Development Mode
-
-Start a local `agent_server` separately, then run the frontend dev server:
-
-```sh
-npm run dev
-```
-
-This starts the frontend on [http://localhost:3001](http://localhost:3001).
-By default it proxies API and WebSocket requests to `http://127.0.0.1:8000`.
-
-If you want to run against mocked APIs instead, use:
-
-```sh
-npm run dev:mock
-# or
-npm run dev:mock:saas
-```
-
-### Building for Production
+## Building for Production
 
 There is no `Makefile` in this repository. Use the npm scripts instead:
 
@@ -64,20 +114,7 @@ npm run build
 npm run start
 ```
 
-### Running Against a Real agent_server
-
-A typical local setup is:
-
-```sh
-# terminal 1: start the backend
-# example only; use whatever command you use to run agent_server
-openhands-agent-server
-
-# terminal 2: start the frontend
-npm run dev
-```
-
-### Environment Variables
+## Environment Variables
 
 The frontend application uses the following environment variables:
 
