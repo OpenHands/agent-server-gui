@@ -46,6 +46,7 @@
 
 
 - README expectation: the very first section should be a concrete from-scratch quickstart for running this frontend against a real `openhands-agent-server` (clone, install backend, optional `.env`, run `npm run dev`). Keep live-backend instructions ahead of general project overview.
+- As an OpenHands incubator **Sandbox** project, the repo should carry the standard sandbox warning badge in `README.md` and include a root `LICENSE` file to satisfy the incubator-program requirements.
 
 
 

@@ -1,5 +1,10 @@
 # agent-server-gui
 
+> [!WARNING]
+> This project is in the **Sandbox** phase. It may be vibecoded, untested, or out of date. OpenHands takes no responsibility for the code or its support. [Learn more](https://github.com/OpenHands/incubator-program).
+
+[![Project Status: Sandbox](https://img.shields.io/badge/status-sandbox-yellow)](https://github.com/OpenHands/incubator-program)
+
 ## Run this with OpenHands Agent Server first
 
 If you only read one section of this README, read this one. Most users will want to clone this repo, point it at a real `openhands-agent-server`, and start using the UI immediately.
