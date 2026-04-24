@@ -3,25 +3,29 @@ import type {
   V1GitChangeStatus,
 } from "#/api/open-hands.types";
 
-/**
- * Maps V1 git change status to legacy V0 status format
- *
- * V1 -> V0 mapping:
- * - ADDED -> A (Added)
- * - DELETED -> D (Deleted)
- * - UPDATED -> M (Modified)
- * - MOVED -> R (Renamed)
- *
- * @param v1Status The V1 git change status
- * @returns The equivalent V0 git change status
- */
-export function mapV1ToV0Status(v1Status: V1GitChangeStatus): GitChangeStatus {
-  const statusMap: Record<V1GitChangeStatus, GitChangeStatus> = {
-    ADDED: "A",
-    DELETED: "D",
-    UPDATED: "M",
-    MOVED: "R",
-  };
+type ClientGitChangeStatus = "added" | "modified" | "deleted" | "renamed";
 
-  return statusMap[v1Status];
+type SupportedGitStatus = V1GitChangeStatus | ClientGitChangeStatus;
+
+export function mapAnyGitStatusToV0Status(status: SupportedGitStatus): GitChangeStatus {
+  switch (status) {
+    case "ADDED":
+    case "added":
+      return "A";
+    case "DELETED":
+    case "deleted":
+      return "D";
+    case "UPDATED":
+    case "modified":
+      return "M";
+    case "MOVED":
+    case "renamed":
+      return "R";
+    default:
+      return "M";
+  }
+}
+
+export function mapV1ToV0Status(v1Status: V1GitChangeStatus): GitChangeStatus {
+  return mapAnyGitStatusToV0Status(v1Status);
 }

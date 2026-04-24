@@ -1,6 +1,6 @@
-import { openHands } from "../open-hands-axios";
-import { Settings, SettingsSchema, SettingsValue } from "#/types/settings";
 import { DEFAULT_SETTINGS } from "#/services/settings";
+import { Settings, SettingsSchema, SettingsValue } from "#/types/settings";
+import { createSettingsClient } from "../typescript-client";
 
 const STORAGE_KEY = "openhands-agent-server-settings";
 
@@ -81,15 +81,11 @@ class SettingsService {
   }
 
   static async getSettingsSchema(): Promise<SettingsSchema> {
-    const { data } = await openHands.get<SettingsSchema>("/api/settings/agent-schema");
-    return data;
+    return (await createSettingsClient().getAgentSchema()) as SettingsSchema;
   }
 
   static async getConversationSettingsSchema(): Promise<SettingsSchema> {
-    const { data } = await openHands.get<SettingsSchema>(
-      "/api/settings/conversation-schema",
-    );
-    return data;
+    return (await createSettingsClient().getConversationSchema()) as SettingsSchema;
   }
 
   static async saveSettings(

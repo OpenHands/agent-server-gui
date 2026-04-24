@@ -1,44 +1,43 @@
-import { openHands } from "../open-hands-axios";
+import { OpenHandsEvent } from "#/types/v1/core";
+import { createHttpClient, createRemoteEventsList } from "../typescript-client";
 import type {
   ConfirmationResponseRequest,
   ConfirmationResponseResponse,
 } from "./event-service.types";
-import { OpenHandsEvent } from "#/types/v1/core";
 
 class EventService {
   static async respondToConfirmation(
     conversationId: string,
     _conversationUrl: string,
     request: ConfirmationResponseRequest,
-    _sessionApiKey?: string | null,
+    sessionApiKey?: string | null,
   ): Promise<ConfirmationResponseResponse> {
-    const { data } = await openHands.post<ConfirmationResponseResponse>(
+    const response = await createHttpClient({ sessionApiKey }).post<ConfirmationResponseResponse>(
       `/api/conversations/${conversationId}/events/respond_to_confirmation`,
       request,
     );
 
-    return data;
+    return response.data;
   }
 
   static async getEventCount(
     conversationId: string,
     _conversationUrl: string,
-    _sessionApiKey?: string | null,
+    sessionApiKey?: string | null,
   ): Promise<number> {
-    const { data } = await openHands.get<number>(
-      `/api/conversations/${conversationId}/events/count`,
-    );
-    return data;
+    return createRemoteEventsList(conversationId, { sessionApiKey }).count();
   }
 
-  static async searchEventsV1(conversationId: string, limit = 100) {
-    const { data } = await openHands.get<{
-      items: OpenHandsEvent[];
-    }>(`/api/conversations/${conversationId}/events/search`, {
-      params: { limit },
+  static async searchEventsV1(
+    conversationId: string,
+    limit = 100,
+    sessionApiKey?: string | null,
+  ) {
+    const page = await createRemoteEventsList(conversationId, { sessionApiKey }).search({
+      limit,
     });
 
-    return data.items;
+    return (page.items ?? []) as OpenHandsEvent[];
   }
 }
 

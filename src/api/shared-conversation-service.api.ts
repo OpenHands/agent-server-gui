@@ -1,5 +1,5 @@
 import { OpenHandsEvent } from "#/types/v1/core";
-import { openHands } from "./open-hands-axios";
+import { createHttpClient } from "./typescript-client";
 
 export interface SharedConversation {
   id: string;
@@ -24,37 +24,33 @@ export interface EventPage {
 }
 
 export const sharedConversationService = {
-  /**
-   * Get a single shared conversation by ID
-   */
   async getSharedConversation(
     conversationId: string,
   ): Promise<SharedConversation | null> {
-    const response = await openHands.get<(SharedConversation | null)[]>(
+    const response = await createHttpClient().get<(SharedConversation | null)[]>(
       "/api/shared-conversations",
       { params: { ids: conversationId } },
     );
+
     return response.data[0] || null;
   },
 
-  /**
-   * Get events for a shared conversation
-   */
   async getSharedConversationEvents(
     conversationId: string,
     limit: number = 100,
     pageId?: string,
   ): Promise<EventPage> {
-    const response = await openHands.get<EventPage>(
+    const response = await createHttpClient().get<EventPage>(
       "/api/shared-events/search",
       {
         params: {
           conversation_id: conversationId,
           limit,
-          ...(pageId && { page_id: pageId }),
+          ...(pageId ? { page_id: pageId } : {}),
         },
       },
     );
+
     return response.data;
   },
 };

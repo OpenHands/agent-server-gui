@@ -1,30 +1,27 @@
-import { openHands } from "../open-hands-axios";
+import { createLlmMetadataClient, createServerClient } from "../typescript-client";
 import { ModelsResponse, WebClientConfig } from "./option.types";
 
 class OptionService {
   static async getModels(): Promise<ModelsResponse> {
-    const [modelsResponse, verifiedResponse, providersResponse] =
-      await Promise.all([
-        openHands.get<{ models: string[] }>("/api/llm/models"),
-        openHands.get<{ models: Record<string, string[]> }>(
-          "/api/llm/models/verified",
-        ),
-        openHands.get<{ providers: string[] }>("/api/llm/providers"),
-      ]);
+    const llmClient = createLlmMetadataClient();
+    const [models, verifiedByProvider, providers] = await Promise.all([
+      llmClient.getModels(),
+      llmClient.getVerifiedModels(),
+      llmClient.getProviders(),
+    ]);
 
-    const verifiedProviders = Object.keys(verifiedResponse.data.models ?? {}).sort();
+    const verifiedProviders = Object.keys(verifiedByProvider ?? {}).sort();
     const verifiedModels = verifiedProviders.flatMap(
-      (provider) => verifiedResponse.data.models[provider] ?? [],
+      (provider) => verifiedByProvider[provider] ?? [],
     );
 
     return {
-      models: modelsResponse.data.models ?? [],
+      models: models ?? [],
       verified_models: verifiedModels,
       verified_providers:
-        providersResponse.data.providers?.filter((provider) =>
-          verifiedProviders.includes(provider),
-        ) ?? verifiedProviders,
-      default_model: verifiedModels[0] ?? modelsResponse.data.models?.[0] ?? "",
+        providers?.filter((provider) => verifiedProviders.includes(provider)) ??
+        verifiedProviders,
+      default_model: verifiedModels[0] ?? models?.[0] ?? "",
     };
   }
 
@@ -33,7 +30,7 @@ class OptionService {
   }
 
   static async getConfig(): Promise<WebClientConfig> {
-    await openHands.get("/server_info");
+    await createServerClient().getServerInfo();
 
     return {
       app_mode: "oss",

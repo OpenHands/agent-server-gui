@@ -1,7 +1,8 @@
-import { openHands } from "../open-hands-axios";
 import { RepositoryPage, BranchPage, InstallationPage } from "#/types/git";
 import { GitChange, GitChangeDiff } from "../open-hands.types";
 import { getAgentServerWorkingDir } from "../agent-server-config";
+import { createRemoteWorkspace } from "../typescript-client";
+import { mapAnyGitStatusToV0Status } from "#/utils/git-status-mapper";
 
 class GitService {
   static async searchGitRepositories(
@@ -62,20 +63,26 @@ class GitService {
   }
 
   static async getGitChanges(_conversationId: string): Promise<GitChange[]> {
-    const { data } = await openHands.get<GitChange[]>("/api/git/changes", {
-      params: { path: getAgentServerWorkingDir() },
-    });
-    return data;
+    const changes = await createRemoteWorkspace().gitChanges(getAgentServerWorkingDir());
+
+    return changes.map((change) => ({
+      path: change.path,
+      status: mapAnyGitStatusToV0Status(
+        String(change.status) as Parameters<typeof mapAnyGitStatusToV0Status>[0],
+      ),
+    }));
   }
 
   static async getGitChangeDiff(
     _conversationId: string,
     path: string,
   ): Promise<GitChangeDiff> {
-    const { data } = await openHands.get<GitChangeDiff>("/api/git/diff", {
-      params: { path },
-    });
-    return data;
+    const diff = await createRemoteWorkspace().gitDiff(path);
+
+    return {
+      modified: diff.modified ?? "",
+      original: diff.original ?? "",
+    };
   }
 }
 

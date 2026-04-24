@@ -8,6 +8,7 @@
     "**/.client/**/*.tsx",
     ".react-router/types/**/*",
   ],
+  "exclude": ["vendor/openhands-typescript-client"],
   "compilerOptions": {
     "lib": [
       "dom",

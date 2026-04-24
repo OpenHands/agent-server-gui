@@ -1,14 +1,24 @@
-import { describe, expect, it, vi, beforeEach, afterEach, Mock } from "vitest";
-import axios from "axios";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import V1ConversationService from "#/api/conversation-service/v1-conversation-service.api";
 
-const { mockAxiosGet, mockOpenHandsPost } = vi.hoisted(() => ({
-  mockAxiosGet: vi.fn(),
-  mockOpenHandsPost: vi.fn(),
+const {
+  mockHttpGet,
+  mockHttpPost,
+  mockFileUpload,
+  mockCreateHttpClient,
+  mockCreateRemoteWorkspace,
+} = vi.hoisted(() => ({
+  mockHttpGet: vi.fn(),
+  mockHttpPost: vi.fn(),
+  mockFileUpload: vi.fn(),
+  mockCreateHttpClient: vi.fn(),
+  mockCreateRemoteWorkspace: vi.fn(),
 }));
 
-vi.mock("#/api/open-hands-axios", () => ({
-  openHands: { post: mockOpenHandsPost },
+vi.mock("#/api/typescript-client", () => ({
+  createHttpClient: mockCreateHttpClient,
+  createRemoteWorkspace: mockCreateRemoteWorkspace,
+  createVSCodeClient: vi.fn(),
 }));
 
 vi.mock("#/api/agent-server-config", () => ({
@@ -18,34 +28,38 @@ vi.mock("#/api/agent-server-config", () => ({
   getConfiguredWorkerUrls: vi.fn(() => []),
 }));
 
-vi.mock("axios");
-
 describe("V1ConversationService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (axios.get as Mock).mockImplementation(mockAxiosGet);
-    mockOpenHandsPost.mockResolvedValue({ data: {} });
-  });
+    mockHttpGet.mockReset();
+    mockHttpPost.mockReset();
+    mockFileUpload.mockReset();
 
-  afterEach(() => {
-    vi.resetAllMocks();
+    mockCreateHttpClient.mockReturnValue({
+      get: mockHttpGet,
+      post: mockHttpPost,
+      patch: vi.fn(),
+      delete: vi.fn(),
+    });
+    mockCreateRemoteWorkspace.mockReturnValue({
+      fileUpload: mockFileUpload,
+    });
   });
 
   describe("readConversationFile", () => {
     it("downloads the default plan path when filePath is not provided", async () => {
-      const encodedPlan = new TextEncoder().encode("# PLAN content");
-      mockAxiosGet.mockResolvedValue({ data: encodedPlan });
+      const encodedPlan = new TextEncoder().encode("# PLAN content").buffer;
+      mockHttpGet.mockResolvedValue({ data: encodedPlan });
 
       const content = await V1ConversationService.readConversationFile("conv-123");
 
       expect(content).toBe("# PLAN content");
-      expect(axios.get).toHaveBeenCalledTimes(1);
-      expect(axios.get).toHaveBeenCalledWith(
-        "http://localhost:54928/api/file/download",
+      expect(mockCreateHttpClient).toHaveBeenCalledTimes(1);
+      expect(mockHttpGet).toHaveBeenCalledWith(
+        "/api/file/download",
         expect.objectContaining({
           params: { path: "/workspace/project/.agents_tmp/PLAN.md" },
-          responseType: "arraybuffer",
-          headers: { "X-Session-API-Key": "test-api-key" },
+          responseType: "arrayBuffer",
         }),
       );
     });
@@ -63,11 +77,10 @@ describe("V1ConversationService", () => {
         uploadPath,
       );
 
-      expect(mockOpenHandsPost).toHaveBeenCalledTimes(1);
-      const callUrl = mockOpenHandsPost.mock.calls[0][0] as string;
-      expect(callUrl).toContain("/api/file/upload?");
-      expect(callUrl).toContain("path=%2Fworkspace%2Fcustom%2Fpath.txt");
-      expect(callUrl).not.toContain("/api/file/upload/%2F");
+      expect(mockCreateRemoteWorkspace).toHaveBeenCalledWith({
+        sessionApiKey: "test-api-key",
+      });
+      expect(mockFileUpload).toHaveBeenCalledWith(file, uploadPath);
     });
 
     it("uses default workspace path when no path provided", async () => {
@@ -79,27 +92,20 @@ describe("V1ConversationService", () => {
         file,
       );
 
-      expect(mockOpenHandsPost).toHaveBeenCalledTimes(1);
-      const callUrl = mockOpenHandsPost.mock.calls[0][0] as string;
-      expect(callUrl).toContain("path=%2Fworkspace%2Fmyfile.txt");
+      expect(mockFileUpload).toHaveBeenCalledWith(file, "/workspace/myfile.txt");
     });
 
-    it("sends file as FormData with multipart headers", async () => {
+    it("passes through the selected session key for uploads", async () => {
       const file = new File(["test content"], "test.txt", { type: "text/plain" });
 
       await V1ConversationService.uploadFile(
         "http://localhost:54928/api/conversations/conv-123",
-        "test-api-key",
+        "my-session-key",
         file,
       );
 
-      expect(mockOpenHandsPost).toHaveBeenCalledTimes(1);
-      const callArgs = mockOpenHandsPost.mock.calls[0];
-      const formData = callArgs[1];
-      expect(formData).toBeInstanceOf(FormData);
-      expect(formData.get("file")).toBe(file);
-      expect(callArgs[2].headers).toEqual({
-        "Content-Type": "multipart/form-data",
+      expect(mockCreateRemoteWorkspace).toHaveBeenCalledWith({
+        sessionApiKey: "my-session-key",
       });
     });
   });

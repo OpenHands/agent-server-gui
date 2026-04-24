@@ -1,18 +1,30 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import axios from "axios";
 import V1GitService from "../../src/api/git-service/v1-git-service.api";
 
-vi.mock("axios");
+const { mockGitChanges, mockGitDiff, mockCreateRemoteWorkspace } = vi.hoisted(() => ({
+  mockGitChanges: vi.fn(),
+  mockGitDiff: vi.fn(),
+  mockCreateRemoteWorkspace: vi.fn(),
+}));
+
+vi.mock("../../src/api/typescript-client", () => ({
+  createRemoteWorkspace: mockCreateRemoteWorkspace,
+}));
 
 describe("V1GitService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGitChanges.mockReset();
+    mockGitDiff.mockReset();
+    mockCreateRemoteWorkspace.mockReturnValue({
+      gitChanges: mockGitChanges,
+      gitDiff: mockGitDiff,
+    });
   });
 
   describe("getGitChanges", () => {
     test("throws when response is not an array (dead runtime returns HTML)", async () => {
-      const htmlResponse = "<!DOCTYPE html><html>...</html>";
-      vi.mocked(axios.get).mockResolvedValue({ data: htmlResponse });
+      mockGitChanges.mockResolvedValue("<!DOCTYPE html><html>...</html>");
 
       await expect(
         V1GitService.getGitChanges(
@@ -23,30 +35,24 @@ describe("V1GitService", () => {
       ).rejects.toThrow("Invalid response from runtime");
     });
 
-    test("uses query parameters instead of path segments for the path", async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: [] });
+    test("passes conversation URL and session key to the runtime workspace", async () => {
+      mockGitChanges.mockResolvedValue([]);
 
       await V1GitService.getGitChanges(
         "http://localhost:3000/api/conversations/123",
-        "test-api-key",
+        "my-session-key",
         "/workspace/project",
       );
 
-      expect(axios.get).toHaveBeenCalledTimes(1);
-      const [url, config] = vi.mocked(axios.get).mock.calls[0];
-
-      // URL should NOT contain the path - it should end with /api/git/changes
-      expect(url).toContain("/api/git/changes");
-      expect(url).not.toContain("/workspace/project");
-      expect(url).not.toContain(encodeURIComponent("/workspace/project"));
-
-      // Path should be passed as a query parameter
-      expect(config).toHaveProperty("params");
-      expect(config?.params).toEqual({ path: "/workspace/project" });
+      expect(mockCreateRemoteWorkspace).toHaveBeenCalledWith({
+        conversationUrl: "http://localhost:3000/api/conversations/123",
+        sessionApiKey: "my-session-key",
+      });
+      expect(mockGitChanges).toHaveBeenCalledWith("/workspace/project");
     });
 
-    test("preserves slashes in path when using query parameters", async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: [] });
+    test("preserves slashes in path when using workspace helper", async () => {
+      mockGitChanges.mockResolvedValue([]);
 
       const pathWithSlashes = "/workspace/project/src/components";
       await V1GitService.getGitChanges(
@@ -55,34 +61,16 @@ describe("V1GitService", () => {
         pathWithSlashes,
       );
 
-      const [, config] = vi.mocked(axios.get).mock.calls[0];
-
-      // Path should be preserved exactly as provided (slashes intact)
-      expect(config?.params).toEqual({ path: pathWithSlashes });
-    });
-
-    test("includes session API key in headers when provided", async () => {
-      vi.mocked(axios.get).mockResolvedValue({ data: [] });
-
-      await V1GitService.getGitChanges(
-        "http://localhost:3000/api/conversations/123",
-        "my-session-key",
-        "/workspace",
-      );
-
-      const [, config] = vi.mocked(axios.get).mock.calls[0];
-      expect(config?.headers).toEqual({ "X-Session-API-Key": "my-session-key" });
+      expect(mockGitChanges).toHaveBeenCalledWith(pathWithSlashes);
     });
 
     test("maps V1 git statuses to V0 format", async () => {
-      vi.mocked(axios.get).mockResolvedValue({
-        data: [
-          { status: "ADDED", path: "new-file.ts" },
-          { status: "DELETED", path: "removed-file.ts" },
-          { status: "UPDATED", path: "changed-file.ts" },
-          { status: "MOVED", path: "renamed-file.ts" },
-        ],
-      });
+      mockGitChanges.mockResolvedValue([
+        { status: "ADDED", path: "new-file.ts" },
+        { status: "DELETED", path: "removed-file.ts" },
+        { status: "UPDATED", path: "changed-file.ts" },
+        { status: "MOVED", path: "renamed-file.ts" },
+      ]);
 
       const result = await V1GitService.getGitChanges(
         "http://localhost:3000/api/conversations/123",
@@ -100,10 +88,8 @@ describe("V1GitService", () => {
   });
 
   describe("getGitChangeDiff", () => {
-    test("uses query parameters instead of path segments for the path", async () => {
-      vi.mocked(axios.get).mockResolvedValue({
-        data: { diff: "--- a/file.ts\n+++ b/file.ts\n..." },
-      });
+    test("passes conversation URL and path to runtime workspace diff helper", async () => {
+      mockGitDiff.mockResolvedValue({ diff: "--- a/file.ts\n+++ b/file.ts\n..." });
 
       await V1GitService.getGitChangeDiff(
         "http://localhost:3000/api/conversations/123",
@@ -111,23 +97,15 @@ describe("V1GitService", () => {
         "/workspace/project/file.ts",
       );
 
-      expect(axios.get).toHaveBeenCalledTimes(1);
-      const [url, config] = vi.mocked(axios.get).mock.calls[0];
-
-      // URL should NOT contain the path - it should end with /api/git/diff
-      expect(url).toContain("/api/git/diff");
-      expect(url).not.toContain("/workspace/project/file.ts");
-      expect(url).not.toContain(encodeURIComponent("/workspace/project/file.ts"));
-
-      // Path should be passed as a query parameter
-      expect(config).toHaveProperty("params");
-      expect(config?.params).toEqual({ path: "/workspace/project/file.ts" });
+      expect(mockCreateRemoteWorkspace).toHaveBeenCalledWith({
+        conversationUrl: "http://localhost:3000/api/conversations/123",
+        sessionApiKey: "test-api-key",
+      });
+      expect(mockGitDiff).toHaveBeenCalledWith("/workspace/project/file.ts");
     });
 
-    test("preserves slashes in file path when using query parameters", async () => {
-      vi.mocked(axios.get).mockResolvedValue({
-        data: { diff: "diff content" },
-      });
+    test("preserves slashes in file path when using workspace helper", async () => {
+      mockGitDiff.mockResolvedValue({ diff: "diff content" });
 
       const filePath = "/workspace/project/src/components/Button.tsx";
       await V1GitService.getGitChangeDiff(
@@ -136,32 +114,14 @@ describe("V1GitService", () => {
         filePath,
       );
 
-      const [, config] = vi.mocked(axios.get).mock.calls[0];
-
-      // Path should be preserved exactly as provided (slashes intact)
-      expect(config?.params).toEqual({ path: filePath });
-    });
-
-    test("includes session API key in headers when provided", async () => {
-      vi.mocked(axios.get).mockResolvedValue({
-        data: { diff: "diff content" },
-      });
-
-      await V1GitService.getGitChangeDiff(
-        "http://localhost:3000/api/conversations/123",
-        "my-session-key",
-        "/workspace/file.ts",
-      );
-
-      const [, config] = vi.mocked(axios.get).mock.calls[0];
-      expect(config?.headers).toEqual({ "X-Session-API-Key": "my-session-key" });
+      expect(mockGitDiff).toHaveBeenCalledWith(filePath);
     });
 
     test("returns the diff data from the response", async () => {
       const expectedDiff = {
         diff: "--- a/file.ts\n+++ b/file.ts\n@@ -1,3 +1,4 @@\n+new line",
       };
-      vi.mocked(axios.get).mockResolvedValue({ data: expectedDiff });
+      mockGitDiff.mockResolvedValue(expectedDiff);
 
       const result = await V1GitService.getGitChangeDiff(
         "http://localhost:3000/api/conversations/123",
@@ -169,7 +129,11 @@ describe("V1GitService", () => {
         "/workspace/file.ts",
       );
 
-      expect(result).toEqual(expectedDiff);
+      expect(result).toEqual({
+        modified: "",
+        original: "",
+        diff: expectedDiff.diff,
+      });
     });
   });
 });

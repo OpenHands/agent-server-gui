@@ -1,4 +1,4 @@
-import { openHands } from "../open-hands-axios";
+import { createHttpClient } from "../typescript-client";
 import type {
   PendingMessageResponse,
   QueuePendingMessageRequest,
@@ -9,7 +9,7 @@ class PendingMessageService {
     conversationId: string,
     message: QueuePendingMessageRequest,
   ): Promise<PendingMessageResponse> {
-    await openHands.post(`/api/conversations/${conversationId}/events`, {
+    await createHttpClient().post(`/api/conversations/${conversationId}/events`, {
       ...message,
       role: "user",
       run: true,

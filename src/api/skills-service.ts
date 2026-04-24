@@ -1,17 +1,18 @@
-import { openHands } from "./open-hands-axios";
 import { SkillInfo } from "#/types/settings";
 import { getAgentServerWorkingDir } from "./agent-server-config";
+import { createSkillsClient } from "./typescript-client";
 
 class SkillsService {
   static async getSkills(): Promise<SkillInfo[]> {
-    const { data } = await openHands.post<{ skills: SkillInfo[] }>("/api/skills", {
+    const response = await createSkillsClient().getSkills({
       load_public: true,
       load_user: true,
       load_project: true,
       load_org: false,
       project_dir: getAgentServerWorkingDir(),
     });
-    return data.skills ?? [];
+
+    return (response.skills ?? []) as SkillInfo[];
   }
 }
 

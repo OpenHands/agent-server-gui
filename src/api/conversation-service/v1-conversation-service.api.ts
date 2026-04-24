@@ -1,31 +1,45 @@
-import axios from "axios";
-import { getAgentServerWorkingDir } from "../agent-server-config";
-import { openHands } from "../open-hands-axios";
-import { ConversationTrigger, GetVSCodeUrlResponse } from "../open-hands.types";
 import { Provider } from "#/types/settings";
 import { SuggestedTask } from "#/utils/types";
-import { DirectConversationInfo, buildStartConversationRequest, downloadTextFile, emptyHooksResponse, loadSkillsForConversation, toV1AppConversation, toV1ConversationPage } from "../agent-server-adapter";
+import {
+  getAgentServerBaseUrl,
+  getAgentServerWorkingDir,
+} from "../agent-server-config";
+import {
+  DirectConversationInfo,
+  buildStartConversationRequest,
+  downloadTextFile,
+  emptyHooksResponse,
+  loadSkillsForConversation,
+  toV1AppConversation,
+  toV1ConversationPage,
+} from "../agent-server-adapter";
+import { ConversationTrigger, GetVSCodeUrlResponse } from "../open-hands.types";
+import {
+  createHttpClient,
+  createRemoteWorkspace,
+  createVSCodeClient,
+} from "../typescript-client";
+import SettingsService from "../settings-service/settings-service.api";
 import type {
-  V1SendMessageRequest,
-  V1SendMessageResponse,
+  GetHooksResponse,
+  GetSkillsResponse,
+  PluginSpec,
+  V1AppConversation,
+  V1AppConversationPage,
   V1AppConversationStartRequest,
   V1AppConversationStartTask,
   V1AppConversationStartTaskPage,
-  V1AppConversation,
-  V1AppConversationPage,
-  GetSkillsResponse,
-  GetHooksResponse,
   V1RuntimeConversationInfo,
-  PluginSpec,
+  V1SendMessageRequest,
+  V1SendMessageResponse,
 } from "./v1-conversation-service.types";
-import SettingsService from "../settings-service/settings-service.api";
 
 class V1ConversationService {
   static async sendMessage(
     conversationId: string,
     message: V1SendMessageRequest,
   ): Promise<V1SendMessageResponse> {
-    await openHands.post(`/api/conversations/${conversationId}/events`, {
+    await createHttpClient().post(`/api/conversations/${conversationId}/events`, {
       ...message,
       run: true,
     });
@@ -55,10 +69,11 @@ class V1ConversationService {
       plugins,
     });
 
-    const { data } = await openHands.post<DirectConversationInfo>(
+    const response = await createHttpClient().post<DirectConversationInfo>(
       "/api/conversations",
       payload,
     );
+    const data = response.data;
 
     return {
       id: data.id,
@@ -67,7 +82,7 @@ class V1ConversationService {
       detail: null,
       app_conversation_id: data.id,
       sandbox_id: data.id,
-      agent_server_url: openHands.defaults.baseURL ?? null,
+      agent_server_url: getAgentServerBaseUrl(),
       request: {
         initial_message: payload.initial_message as
           | V1AppConversationStartRequest["initial_message"]
@@ -94,56 +109,54 @@ class V1ConversationService {
   static async getVSCodeUrl(
     _conversationId: string,
     _conversationUrl: string | null | undefined,
-    _sessionApiKey?: string | null,
+    sessionApiKey?: string | null,
   ): Promise<GetVSCodeUrlResponse> {
-    const { data } = await openHands.get<{ url: string | null }>(
-      "/api/vscode/url",
-      {
-        params: {
-          base_url:
-            typeof window !== "undefined" ? window.location.origin : undefined,
-          workspace_dir: getAgentServerWorkingDir(),
-        },
-      },
-    );
-    return { vscode_url: data.url };
+    const vscode_url = await createVSCodeClient({ sessionApiKey }).getUrl({
+      baseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
+      workspaceDir: getAgentServerWorkingDir(),
+    });
+
+    return { vscode_url };
   }
 
   static async pauseConversation(
     conversationId: string,
     _conversationUrl: string | null | undefined,
-    _sessionApiKey?: string | null,
+    sessionApiKey?: string | null,
   ): Promise<{ success: boolean }> {
-    const { data } = await openHands.post<{ success: boolean }>(
+    const response = await createHttpClient({ sessionApiKey }).post<{ success: boolean }>(
       `/api/conversations/${conversationId}/pause`,
       {},
     );
-    return data;
+
+    return response.data;
   }
 
   static async askAgent(
     conversationId: string,
     _conversationUrl: string | null | undefined,
     question: string,
-    _sessionApiKey?: string | null,
+    sessionApiKey?: string | null,
   ): Promise<{ response: string }> {
-    const { data } = await openHands.post<{ response: string }>(
+    const response = await createHttpClient({ sessionApiKey }).post<{ response: string }>(
       `/api/conversations/${conversationId}/ask_agent`,
       { question },
     );
-    return data;
+
+    return response.data;
   }
 
   static async resumeConversation(
     conversationId: string,
     _conversationUrl: string | null | undefined,
-    _sessionApiKey?: string | null,
+    sessionApiKey?: string | null,
   ): Promise<{ success: boolean }> {
-    const { data } = await openHands.post<{ success: boolean }>(
+    const response = await createHttpClient({ sessionApiKey }).post<{ success: boolean }>(
       `/api/conversations/${conversationId}/run`,
       {},
     );
-    return data;
+
+    return response.data;
   }
 
   static async batchGetAppConversations(
@@ -151,28 +164,22 @@ class V1ConversationService {
   ): Promise<(V1AppConversation | null)[]> {
     if (ids.length === 0) return [];
 
-    const { data } = await openHands.get<(DirectConversationInfo | null)[]>(
+    const response = await createHttpClient().get<(DirectConversationInfo | null)[]>(
       "/api/conversations",
       { params: { ids } },
     );
 
-    return data.map((item) => (item ? toV1AppConversation(item) : null));
+    return response.data.map((item) => (item ? toV1AppConversation(item) : null));
   }
 
   static async uploadFile(
     _conversationUrl: string | null | undefined,
-    _sessionApiKey: string | null | undefined,
+    sessionApiKey: string | null | undefined,
     file: File,
     path?: string,
   ): Promise<void> {
     const uploadPath = path || `/workspace/${file.name}`;
-    const formData = new FormData();
-    formData.append("file", file);
-    await openHands.post(`/api/file/upload?path=${encodeURIComponent(uploadPath)}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    await createRemoteWorkspace({ sessionApiKey }).fileUpload(file, uploadPath);
   }
 
   static async getConversationConfig(
@@ -207,9 +214,13 @@ class V1ConversationService {
   }
 
   static async downloadConversation(conversationId: string): Promise<Blob> {
-    const response = await openHands.get(`/api/file/download-trajectory/${conversationId}`, {
-      responseType: "blob",
-    });
+    const response = await createHttpClient().get<Blob>(
+      `/api/file/download-trajectory/${conversationId}`,
+      {
+        responseType: "blob",
+      },
+    );
+
     return response.data;
   }
 
@@ -225,11 +236,12 @@ class V1ConversationService {
   static async getRuntimeConversation(
     conversationId: string,
     _conversationUrl: string | null | undefined,
-    _sessionApiKey?: string | null,
+    sessionApiKey?: string | null,
   ): Promise<V1RuntimeConversationInfo> {
-    const { data } = await openHands.get<DirectConversationInfo & { stats?: V1RuntimeConversationInfo["stats"] }>(
-      `/api/conversations/${conversationId}`,
-    );
+    const response = await createHttpClient({ sessionApiKey }).get<
+      DirectConversationInfo & { stats?: V1RuntimeConversationInfo["stats"] }
+    >(`/api/conversations/${conversationId}`);
+    const data = response.data;
 
     return {
       id: data.id,
@@ -275,7 +287,7 @@ class V1ConversationService {
     limit: number = 20,
     pageId?: string,
   ): Promise<V1AppConversationPage> {
-    const { data } = await openHands.get<{
+    const response = await createHttpClient().get<{
       items: DirectConversationInfo[];
       next_page_id: string | null;
     }>("/api/conversations/search", {
@@ -286,18 +298,18 @@ class V1ConversationService {
       },
     });
 
-    return toV1ConversationPage(data);
+    return toV1ConversationPage(response.data);
   }
 
   static async deleteConversation(conversationId: string): Promise<void> {
-    await openHands.delete(`/api/conversations/${conversationId}`);
+    await createHttpClient().delete(`/api/conversations/${conversationId}`);
   }
 
   static async updateConversationTitle(
     conversationId: string,
     title: string,
   ): Promise<V1AppConversation> {
-    await openHands.patch(`/api/conversations/${conversationId}`, { title });
+    await createHttpClient().patch(`/api/conversations/${conversationId}`, { title });
     const [conversation] = await this.batchGetAppConversations([conversationId]);
     return conversation as V1AppConversation;
   }

@@ -1,4 +1,4 @@
-import { openHands } from "../open-hands-axios";
+import { createLlmMetadataClient } from "../typescript-client";
 import type {
   LLMModel,
   LLMModelPage,
@@ -40,17 +40,14 @@ class ConfigService {
   static async searchModels(
     params: SearchModelsParams = {},
   ): Promise<LLMModelPage> {
-    const [modelsResponse, verifiedResponse] = await Promise.all([
-      openHands.get<{ models: string[] }>("/api/llm/models"),
-      openHands.get<{ models: Record<string, string[]> }>(
-        "/api/llm/models/verified",
-      ),
+    const llmClient = createLlmMetadataClient();
+    const [models, verifiedByProvider] = await Promise.all([
+      llmClient.getModels(),
+      llmClient.getVerifiedModels(),
     ]);
 
     const provider = params.provider__eq ?? null;
-    const verifiedNames = new Set(
-      provider ? (verifiedResponse.data.models?.[provider] ?? []) : [],
-    );
+    const verifiedNames = new Set(provider ? (verifiedByProvider?.[provider] ?? []) : []);
     const verifiedItems: LLMModel[] = [...verifiedNames].map((name) => ({
       provider,
       name,
@@ -58,7 +55,7 @@ class ConfigService {
     }));
 
     const prefixedItems: LLMModel[] = provider
-      ? (modelsResponse.data.models ?? [])
+      ? (models ?? [])
           .filter((model) => model.startsWith(`${provider}/`))
           .map((model) => model.slice(provider.length + 1))
           .filter((name) => name.length > 0 && !verifiedNames.has(name))
@@ -86,25 +83,20 @@ class ConfigService {
   static async searchProviders(
     params: SearchProvidersParams = {},
   ): Promise<ProviderPage> {
-    const [providersResponse, verifiedResponse] = await Promise.all([
-      openHands.get<{ providers: string[] }>("/api/llm/providers"),
-      openHands.get<{ models: Record<string, string[]> }>(
-        "/api/llm/models/verified",
-      ),
+    const llmClient = createLlmMetadataClient();
+    const [providers, verifiedByProvider] = await Promise.all([
+      llmClient.getProviders(),
+      llmClient.getVerifiedModels(),
     ]);
 
-    const verifiedProviders = new Set(
-      Object.keys(verifiedResponse.data.models ?? {}),
-    );
-    const providers: LLMProvider[] = (providersResponse.data.providers ?? []).map(
-      (name) => ({
-        name,
-        verified: verifiedProviders.has(name),
-      }),
-    );
+    const verifiedProviders = new Set(Object.keys(verifiedByProvider ?? {}));
+    const providerItems: LLMProvider[] = (providers ?? []).map((name) => ({
+      name,
+      verified: verifiedProviders.has(name),
+    }));
 
     const items = limitItems(
-      filterByVerified(filterByQuery(providers, params.query), params.verified__eq),
+      filterByVerified(filterByQuery(providerItems, params.query), params.verified__eq),
       params.limit,
     );
 

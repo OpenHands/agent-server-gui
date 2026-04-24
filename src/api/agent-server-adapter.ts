@@ -1,7 +1,12 @@
-import axios from "axios";
 import { DEFAULT_SETTINGS } from "#/services/settings";
 import { Settings } from "#/types/settings";
-import { getAgentServerBaseUrl, getAgentServerSessionApiKey, getAgentServerWorkingDir, getConfiguredWorkerUrls } from "./agent-server-config";
+import { V1ExecutionStatus } from "#/types/v1/core";
+import {
+  getAgentServerBaseUrl,
+  getAgentServerSessionApiKey,
+  getAgentServerWorkingDir,
+  getConfiguredWorkerUrls,
+} from "./agent-server-config";
 import {
   GetHooksResponse,
   GetSkillsResponse,
@@ -9,8 +14,11 @@ import {
   V1AppConversation,
   V1AppConversationPage,
 } from "./conversation-service/v1-conversation-service.types";
-import { V1ExecutionStatus } from "#/types/v1/core";
-import { V1SandboxInfo, V1SandboxStatus } from "./sandbox-service/sandbox-service.types";
+import {
+  V1SandboxInfo,
+  V1SandboxStatus,
+} from "./sandbox-service/sandbox-service.types";
+import { createHttpClient, createSkillsClient } from "./typescript-client";
 
 export interface DirectConversationInfo {
   id: string;
@@ -232,16 +240,10 @@ export function buildStartConversationRequest(options: {
 }
 
 export async function downloadTextFile(path: string): Promise<string> {
-  const response = await axios.get<ArrayBuffer>(
-    `${getAgentServerBaseUrl()}/api/file/download`,
-    {
-      params: { path },
-      headers: getAgentServerSessionApiKey()
-        ? { "X-Session-API-Key": getAgentServerSessionApiKey()! }
-        : undefined,
-      responseType: "arraybuffer",
-    },
-  );
+  const response = await createHttpClient().get<ArrayBuffer>("/api/file/download", {
+    params: { path },
+    responseType: "arrayBuffer",
+  });
 
   return new TextDecoder().decode(response.data);
 }
@@ -266,23 +268,15 @@ export function createSandboxInfo(conversation: V1AppConversation): V1SandboxInf
 export async function loadSkillsForConversation(
   _conversation: V1AppConversation | null | undefined,
 ): Promise<GetSkillsResponse> {
-  const response = await axios.post<{ skills: GetSkillsResponse["skills"] }>(
-    `${getAgentServerBaseUrl()}/api/skills`,
-    {
-      load_public: true,
-      load_user: true,
-      load_project: true,
-      load_org: false,
-      project_dir: getAgentServerWorkingDir(),
-    },
-    {
-      headers: getAgentServerSessionApiKey()
-        ? { "X-Session-API-Key": getAgentServerSessionApiKey()! }
-        : undefined,
-    },
-  );
+  const response = await createSkillsClient().getSkills({
+    load_public: true,
+    load_user: true,
+    load_project: true,
+    load_org: false,
+    project_dir: getAgentServerWorkingDir(),
+  });
 
-  return { skills: response.data.skills ?? [] };
+  return { skills: response.skills ?? [] };
 }
 
 export function emptyHooksResponse(): GetHooksResponse {

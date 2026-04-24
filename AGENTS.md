@@ -14,6 +14,10 @@
   - `VITE_ENABLE_BROWSER_TOOLS=false` to omit `BrowserToolSet` from new conversation payloads.
 - The UI keeps most OpenHands routes/layout intact, but SaaS/org/billing/integration behavior is intentionally hidden or stubbed via the fabricated OSS config because there is no separate app backend.
 - Verification command: `npm run typecheck && npm run build`.
+- `@openhands/typescript-client` is currently consumed via a vendored local file dependency at `vendor/openhands-typescript-client` because anonymous/public GitHub Packages install was not usable in this environment. The vendored package is pinned to `v0.1.2`, keeps built `dist/` output committed, and exposes extra subpath exports for `client/http-client`, `events/remote-events-list`, and `workspace/remote-workspace`.
+- Shared TypeScript-client adapters live in `src/api/typescript-client.ts`; prefer those helpers for agent-server-backed REST/workspace/event/VS Code calls before falling back to `open-hands-axios`.
+- Root `tsconfig.json` excludes `vendor/openhands-typescript-client` so the frontend typecheck only covers the app code.
+
 - `npm run dev:mock` needs MSW handlers for the direct agent-server routes used by the adapted frontend, not the original OpenHands mock paths. Key routes that must stay covered are:
   - bootstrap/model loading: `/server_info`, `/api/llm/models/verified`, `/api/llm/providers`
   - settings schemas: `/api/settings/agent-schema`, `/api/settings/conversation-schema`
