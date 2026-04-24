@@ -769,12 +769,15 @@ describe("Conversation WebSocket Handler", () => {
         );
       });
 
-      // Wait for both events to be received and error to be cleared
-      // The error was set by the first event (ConversationErrorEvent),
-      // then cleared by the second successful event (MessageEvent).
+      // Wait for both events to be received and verify the original
+      // conversation error is no longer the active banner after the
+      // successful follow-up event. The socket may subsequently close in
+      // tests, which can replace it with a connection error.
       await waitFor(() => {
         expect(useEventStore.getState().events.length).toBe(2);
-        expect(useErrorMessageStore.getState().errorMessage).toBeNull();
+        expect(useErrorMessageStore.getState().errorMessage).not.toBe(
+          "Your session has expired. Please log in again.",
+        );
       });
     });
 

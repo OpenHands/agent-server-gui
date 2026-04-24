@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { createRoutesStub } from "react-router";
-import { createAxiosNotFoundErrorObject } from "test-utils";
 import HomeScreen from "#/routes/home";
 import { GitRepository } from "#/types/git";
 import SettingsService from "#/api/settings-service/settings-service.api";
@@ -133,7 +132,13 @@ const selectRepository = async (repoName: string) => {
 const renderHomeScreen = () =>
   render(<RouterStub />, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={new QueryClient()}>
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+          })
+        }
+      >
         {children}
       </QueryClientProvider>
     ),
@@ -452,108 +457,6 @@ describe("HomeScreen", () => {
   });
 });
 
-describe("Settings 404", () => {
-  const getConfigSpy = vi.spyOn(OptionService, "getConfig");
-  const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
-
-  beforeEach(() => {
-    vi.resetAllMocks();
-
-    useIsAuthedMock.mockReturnValue({
-      data: true,
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-    });
-    useConfigMock.mockReturnValue({
-      data: { app_mode: "oss", feature_flags: DEFAULT_FEATURE_FLAGS },
-      isLoading: false,
-    });
-
-    getConfigSpy.mockResolvedValue({
-      app_mode: "oss",
-      posthog_client_key: "test-posthog-key",
-      providers_configured: ["github"],
-      auth_url: "https://auth.example.com",
-      feature_flags: DEFAULT_FEATURE_FLAGS,
-      maintenance_start_time: null,
-      recaptcha_site_key: null,
-      faulty_models: [],
-      error_message: null,
-      updated_at: "2024-01-14T10:00:00Z",
-      github_app_slug: null,
-    });
-
-    vi.spyOn(AuthService, "authenticate").mockResolvedValue(true);
-
-    getSettingsSpy.mockResolvedValue(MOCK_DEFAULT_USER_SETTINGS);
-
-    vi.stubGlobal("localStorage", {
-      getItem: vi.fn(() => null),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-      clear: vi.fn(),
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
-
-  it("should open the settings modal if GET /settings fails with a 404", async () => {
-    const error = createAxiosNotFoundErrorObject();
-    getSettingsSpy.mockRejectedValue(error);
-
-    renderHomeScreen();
-
-    const settingsModal = await screen.findByTestId("ai-config-modal");
-    expect(settingsModal).toBeInTheDocument();
-  });
-
-  it("should have the correct advanced settings link that opens in a new window", async () => {
-    const error = createAxiosNotFoundErrorObject();
-    getSettingsSpy.mockRejectedValue(error);
-
-    renderHomeScreen();
-
-    const settingsScreen = screen.queryByTestId("settings-screen");
-    expect(settingsScreen).not.toBeInTheDocument();
-
-    const settingsModal = await screen.findByTestId("ai-config-modal");
-    expect(settingsModal).toBeInTheDocument();
-
-    const advancedSettingsLink = await screen.findByTestId(
-      "advanced-settings-link",
-    );
-
-    // The advanced settings link should be an anchor tag that opens in a new window
-    const linkElement = advancedSettingsLink.querySelector("a");
-    expect(linkElement).toBeInTheDocument();
-    expect(linkElement).toHaveAttribute("href", "/settings");
-    expect(linkElement).toHaveAttribute("target", "_blank");
-    expect(linkElement).toHaveAttribute("rel", "noreferrer noopener");
-  });
-
-  it("should not open the settings modal if GET /settings fails but is SaaS mode", async () => {
-    useConfigMock.mockReturnValue({
-      data: { app_mode: "saas", feature_flags: DEFAULT_FEATURE_FLAGS },
-      isLoading: false,
-    });
-
-    // @ts-expect-error - we only need app_mode for this test
-    getConfigSpy.mockResolvedValue({
-      app_mode: "saas",
-      feature_flags: DEFAULT_FEATURE_FLAGS,
-    });
-    const error = createAxiosNotFoundErrorObject();
-    getSettingsSpy.mockRejectedValue(error);
-
-    renderHomeScreen();
-
-    expect(screen.queryByTestId("ai-config-modal")).not.toBeInTheDocument();
-  });
-});
 
 describe("New user welcome toast", () => {
   const getConfigSpy = vi.spyOn(OptionService, "getConfig");

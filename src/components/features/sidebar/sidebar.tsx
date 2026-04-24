@@ -8,7 +8,7 @@ import { NewProjectButton } from "#/components/shared/buttons/new-project-button
 import { ConversationPanelButton } from "#/components/shared/buttons/conversation-panel-button";
 import { AutomationsButton } from "#/components/shared/buttons/automations-button";
 import { SettingsModal } from "#/components/shared/modals/settings/settings-modal";
-import { useSettings } from "#/hooks/query/use-settings";
+import { getErrorStatus, useSettings } from "#/hooks/query/use-settings";
 import { ConversationPanel } from "../conversation-panel/conversation-panel";
 import { ConversationPanelWrapper } from "../conversation-panel/conversation-panel-wrapper";
 import { useConfig } from "#/hooks/query/use-config";
@@ -33,6 +33,7 @@ export function Sidebar() {
 
   const [conversationPanelIsOpen, setConversationPanelIsOpen] =
     React.useState(false);
+  const settingsErrorStatus = getErrorStatus(settingsError);
 
   React.useEffect(() => {
     if (pathname === "/settings") {
@@ -40,7 +41,7 @@ export function Sidebar() {
     } else if (
       !isFetchingSettings &&
       settingsIsError &&
-      settingsError?.status !== 404
+      settingsErrorStatus !== 404
     ) {
       // We don't show toast errors for settings in the global error handler
       // because we have a special case for 404 errors
@@ -49,7 +50,7 @@ export function Sidebar() {
       );
     } else if (
       config?.app_mode === "oss" &&
-      settingsError?.status === 404 &&
+      settingsErrorStatus === 404 &&
       !config?.feature_flags?.hide_llm_settings
     ) {
       setSettingsModalIsOpen(true);
@@ -58,7 +59,7 @@ export function Sidebar() {
     pathname,
     isFetchingSettings,
     settingsIsError,
-    settingsError,
+    settingsErrorStatus,
     config?.app_mode,
     config?.feature_flags?.hide_llm_settings,
   ]);

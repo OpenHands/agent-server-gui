@@ -8,7 +8,7 @@ If you only read one section of this README, read this one. Most users will want
 
 - Node.js 22.12.x or later
 - `npm`
-- A running OpenHands Agent Server (`openhands-agent-server`)
+- A running OpenHands Agent Server (`agent-server`)
 
 ### 1. Clone and install the frontend
 
@@ -20,16 +20,28 @@ npm install
 
 ### 2. Install and start OpenHands Agent Server
 
-If you do not already have the backend installed, install it first:
+If you do not already have the backend installed, install `uv` first (OpenHands SDK recommends `uv` 0.8.13+):
 
 ```sh
-python3 -m pip install openhands-agent-server
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
+
+Then install or upgrade the agent server package together with the tool/workspace dependencies that the SDK getting started page lists separately:
+
+```sh
+uv tool install -U \
+  --with openhands-tools \
+  --with openhands-workspace \
+  --with libtmux \
+  openhands-agent-server
+```
+
+`uv tool install` exposes the server as the `agent-server` CLI. If `~/.local/bin` is not already on your `PATH`, either add it or run the binary via its full path.
 
 Then start the backend on the default local port:
 
 ```sh
-openhands-agent-server --host 127.0.0.1 --port 8000
+agent-server --host 127.0.0.1 --port 8000
 ```
 
 The frontend expects the backend at `127.0.0.1:8000` by default, so this is the easiest from-scratch setup.
@@ -78,11 +90,13 @@ This starts the frontend on [http://localhost:3001](http://localhost:3001).
 After the page opens:
 
 - `/` should load without errors
-- you should be able to open or create a conversation
-- `/conversations/:id` should load conversation content
 - `/settings` should load
   - on secured backends, make sure `VITE_SESSION_API_KEY` matches the backend session key
+  - configure a working LLM model + API key under `Settings > LLM` before running the first live task
   - if your backend is too old to expose settings schemas, the UI will show an actionable `SDK settings schema unavailable.` message instead of crashing
+- you should be able to open or create a conversation
+- `/conversations/:id` should load conversation content
+- if you want the Git / Changes panels to point at this repo, set `VITE_WORKING_DIR` to the actual repo root (for this checkout that is `/workspace/project/agent-server-gui`), not just the parent workspace directory
 
 ### Mock mode
 

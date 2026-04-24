@@ -40,7 +40,8 @@ export interface DirectConversationInfo {
   } | null;
 }
 
-const DEFAULT_TOOL_NAMES = ["TerminalTool", "FileEditorTool", "TaskTrackerTool"];
+const DEFAULT_TOOL_NAMES = ["terminal", "file_editor", "task_tracker"];
+const BROWSER_TOOL_SET_NAME = "browser_tool_set";
 
 function browserToolsEnabled() {
   return import.meta.env.VITE_ENABLE_BROWSER_TOOLS !== "false";
@@ -152,7 +153,7 @@ function getSecurityAnalyzer(settings: Settings) {
 function getAgentTools() {
   const tools = DEFAULT_TOOL_NAMES.map((name) => ({ name, params: {} }));
   if (browserToolsEnabled()) {
-    tools.push({ name: "BrowserToolSet", params: {} });
+    tools.push({ name: BROWSER_TOOL_SET_NAME, params: {} });
   }
   return tools;
 }
