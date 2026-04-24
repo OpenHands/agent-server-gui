@@ -34,6 +34,8 @@ openhands-agent-server --host 127.0.0.1 --port 8000
 
 The frontend expects the backend at `127.0.0.1:8000` by default, so this is the easiest from-scratch setup.
 
+If you start the backend with `SESSION_API_KEY` or `OH_SESSION_API_KEYS_0`, every `/api/*` route is authenticated with `X-Session-API-Key`. In that case the frontend must send the same key via `VITE_SESSION_API_KEY`.
+
 If you prefer installing from source or want the full SDK setup flow, see the OpenHands SDK docs: <https://docs.openhands.dev/sdk/getting-started>
 
 ### 3. Optional: create a `.env` file
@@ -50,6 +52,7 @@ Then update the values you need:
 VITE_BACKEND_HOST="127.0.0.1:8000"
 VITE_BACKEND_BASE_URL="http://127.0.0.1:8000"
 VITE_FRONTEND_PORT="3001"
+# Use the same value as backend SESSION_API_KEY or OH_SESSION_API_KEYS_0 when auth is enabled.
 # VITE_SESSION_API_KEY="your-session-api-key"
 # VITE_WORKING_DIR="/absolute/path/to/the-workspace-used-by-agent-server"
 ```
@@ -59,6 +62,7 @@ Notes:
 - `VITE_BACKEND_HOST` is used by the Vite dev proxy for `/api`, `/server_info`, and `/sockets`.
 - `VITE_BACKEND_BASE_URL` is used by browser-side direct requests. Keep it pointed at the same backend.
 - `VITE_WORKING_DIR` should match the workspace path the backend will use when starting new conversations.
+- If the backend is secured with `SESSION_API_KEY` or `OH_SESSION_API_KEYS_0`, set `VITE_SESSION_API_KEY` to the same value or live requests will fail with `401 Unauthorized`.
 - If your backend does not require `X-Session-API-Key`, leave `VITE_SESSION_API_KEY` unset.
 
 ### 4. Start the frontend
@@ -77,7 +81,8 @@ After the page opens:
 - you should be able to open or create a conversation
 - `/conversations/:id` should load conversation content
 - `/settings` should load
-  - if your backend does not expose settings schemas, the UI will show `SDK settings schema unavailable.` instead of crashing
+  - on secured backends, make sure `VITE_SESSION_API_KEY` matches the backend session key
+  - if your backend is too old to expose settings schemas, the UI will show an actionable `SDK settings schema unavailable.` message instead of crashing
 
 ### Mock mode
 

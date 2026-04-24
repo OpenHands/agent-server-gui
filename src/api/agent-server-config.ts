@@ -36,11 +36,46 @@ function normalizeBaseUrl(value?: string | null): string | null {
   return `http://${trimmed}`;
 }
 
+function shouldUseProxyOrigin(baseUrl: string): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const configuredUrl = new URL(baseUrl);
+    const localHosts = new Set(["127.0.0.1", "localhost", "0.0.0.0"]);
+    const browserHostname = window.location.hostname;
+
+    return (
+      localHosts.has(configuredUrl.hostname) &&
+      !localHosts.has(browserHostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function resolveAgentServerBaseUrl(baseUrl: string | null): string | null {
+  if (!baseUrl) {
+    return null;
+  }
+
+  if (shouldUseProxyOrigin(baseUrl)) {
+    return window.location.origin;
+  }
+
+  return baseUrl;
+}
+
 export function getAgentServerBaseUrl(): string {
-  const envUrl = normalizeBaseUrl(import.meta.env.VITE_BACKEND_BASE_URL);
+  const envUrl = resolveAgentServerBaseUrl(
+    normalizeBaseUrl(import.meta.env.VITE_BACKEND_BASE_URL),
+  );
   if (envUrl) return envUrl;
 
-  const storedUrl = normalizeBaseUrl(readStoredConfig().baseUrl);
+  const storedUrl = resolveAgentServerBaseUrl(
+    normalizeBaseUrl(readStoredConfig().baseUrl),
+  );
   if (storedUrl) return storedUrl;
 
   if (typeof window !== "undefined") {

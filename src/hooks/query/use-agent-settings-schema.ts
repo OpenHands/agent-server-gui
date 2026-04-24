@@ -10,7 +10,7 @@ const useSettingsSchema = (
 ) => {
   const isOnIntermediatePage = useIsOnIntermediatePage();
   const { data: userIsAuthenticated } = useIsAuthed();
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, error, isLoading, isFetching } = useQuery({
     queryKey: ["settings-schema", type],
     queryFn:
       type === "conversation"
@@ -29,6 +29,7 @@ const useSettingsSchema = (
   if (fallbackSchema) {
     return {
       data: fallbackSchema,
+      error: null,
       isLoading: false,
       isFetching: false,
     };
@@ -36,6 +37,7 @@ const useSettingsSchema = (
 
   return {
     data,
+    error,
     isLoading,
     isFetching,
   };

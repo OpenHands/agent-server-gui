@@ -78,6 +78,25 @@ const normalizeView = (
   return "basic";
 };
 
+const getSchemaUnavailableMessage = (
+  error: unknown,
+  fallbackMessage: string,
+): string => {
+  if (!(error instanceof AxiosError)) {
+    return fallbackMessage;
+  }
+
+  if (error.response?.status === 401) {
+    return `${fallbackMessage} This agent server requires X-Session-API-Key. Set VITE_SESSION_API_KEY in the frontend to the same value used by the backend SESSION_API_KEY or OH_SESSION_API_KEYS_0.`;
+  }
+
+  if (error.response?.status === 404) {
+    return `${fallbackMessage} This backend does not expose /api/settings/* schema endpoints. Upgrade to a recent openhands-agent-server release.`;
+  }
+
+  return fallbackMessage;
+};
+
 export interface SdkSectionHeaderProps {
   values: SettingsFormValues;
   isDisabled: boolean;
@@ -141,14 +160,12 @@ export function SdkSectionPage({
   const conversationSchemaQuery = useConversationSettingsSchema(
     settings?.conversation_settings_schema,
   );
-  const schema =
+  const activeSchemaQuery =
     settingsSource === "conversation_settings"
-      ? conversationSchemaQuery.data
-      : agentSchemaQuery.data;
-  const isSchemaLoading =
-    settingsSource === "conversation_settings"
-      ? conversationSchemaQuery.isLoading
-      : agentSchemaQuery.isLoading;
+      ? conversationSchemaQuery
+      : agentSchemaQuery;
+  const schema = activeSchemaQuery.data;
+  const isSchemaLoading = activeSchemaQuery.isLoading;
   const { data: config } = useConfig();
   const { data: me } = useMe();
   const { hasPermission } = usePermission(me?.role ?? "member");
@@ -184,6 +201,14 @@ export function SdkSectionPage({
   const showAdvanced =
     forceShowAdvancedView || hasAdvancedSettings(filteredSchema);
   const showAll = allowAllView && hasMinorSettings(filteredSchema);
+  const schemaUnavailableMessage = React.useMemo(
+    () =>
+      getSchemaUnavailableMessage(
+        activeSchemaQuery.error,
+        t(I18nKey.SETTINGS$SDK_SCHEMA_UNAVAILABLE),
+      ),
+    [activeSchemaQuery.error, t],
+  );
 
   const initialValues = React.useMemo(() => {
     if (!settings || !filteredSchema) return null;
@@ -305,7 +330,7 @@ export function SdkSectionPage({
   if (!filteredSchema || filteredSchema.sections.length === 0) {
     return (
       <Typography.Paragraph className="text-tertiary-alt">
-        {t(I18nKey.SETTINGS$SDK_SCHEMA_UNAVAILABLE)}
+        {schemaUnavailableMessage}
       </Typography.Paragraph>
     );
   }
