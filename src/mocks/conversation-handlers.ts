@@ -1,115 +1,132 @@
 import { http, delay, HttpResponse } from "msw";
-import {
-  Conversation,
-  GetMicroagentsResponse,
-  ResultSet,
-} from "#/api/open-hands.types";
+import type { DirectConversationInfo } from "#/api/agent-server-adapter";
+import { GetMicroagentsResponse } from "#/api/open-hands.types";
 
-const conversations: Conversation[] = [
+const now = Date.now();
+
+type MockConversation = DirectConversationInfo & {
+  selected_repository?: string | null;
+  selected_branch?: string | null;
+  git_provider?: string | null;
+};
+
+const conversations: MockConversation[] = [
   {
-    conversation_id: "1",
+    id: "1",
     title: "My New Project",
-    selected_repository: null,
-    git_provider: null,
-    selected_branch: null,
-    last_updated_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    status: "RUNNING",
-    runtime_status: "STATUS$READY",
-    url: null,
-    session_api_key: null,
+    created_at: new Date(now).toISOString(),
+    updated_at: new Date(now).toISOString(),
+    execution_status: "waiting_for_confirmation",
   },
   {
-    conversation_id: "2",
+    id: "2",
     title: "Repo Testing",
+    created_at: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    execution_status: "idle",
     selected_repository: "octocat/hello-world",
     git_provider: "github",
-    selected_branch: null,
-    last_updated_at: new Date(
-      Date.now() - 2 * 24 * 60 * 60 * 1000,
-    ).toISOString(),
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    status: "STOPPED",
-    runtime_status: null,
-    url: null,
-    session_api_key: null,
   },
   {
-    conversation_id: "3",
+    id: "3",
     title: "Another Project",
+    created_at: new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updated_at: new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    execution_status: "idle",
     selected_repository: "octocat/earth",
-    git_provider: null,
     selected_branch: "main",
-    last_updated_at: new Date(
-      Date.now() - 5 * 24 * 60 * 60 * 1000,
-    ).toISOString(),
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    status: "STOPPED",
-    runtime_status: null,
-    url: null,
-    session_api_key: null,
   },
 ];
 
-const CONVERSATIONS = new Map<string, Conversation>(
-  conversations.map((c) => [c.conversation_id, c]),
+const CONVERSATIONS = new Map<string, MockConversation>(
+  conversations.map((conversation) => [conversation.id, conversation]),
 );
 
+function createConversationResponse(
+  conversation: MockConversation,
+): DirectConversationInfo {
+  return {
+    id: conversation.id,
+    title: conversation.title ?? null,
+    created_at: conversation.created_at,
+    updated_at: conversation.updated_at,
+    execution_status: conversation.execution_status ?? "idle",
+    metrics: conversation.metrics ?? null,
+    agent: conversation.agent ?? null,
+    workspace: conversation.workspace ?? null,
+  };
+}
+
+function listConversationResponses(ids?: string[] | null) {
+  if (!ids || ids.length === 0) {
+    return Array.from(CONVERSATIONS.values()).map(createConversationResponse);
+  }
+
+  return ids.map((id) => {
+    const conversation = CONVERSATIONS.get(id);
+    return conversation ? createConversationResponse(conversation) : null;
+  });
+}
+
 export const CONVERSATION_HANDLERS = [
-  http.get("/api/conversations", async () => {
-    const values = Array.from(CONVERSATIONS.values());
-    const results: ResultSet<Conversation> = {
-      results: values,
-      next_page_id: null,
-    };
-    return HttpResponse.json(results);
+  http.get("/api/conversations/search", async ({ request }) => {
+    const url = new URL(request.url);
+    const limit = Number(url.searchParams.get("limit") ?? "20");
+    const items = Array.from(CONVERSATIONS.values())
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      .slice(0, limit)
+      .map(createConversationResponse);
+
+    return HttpResponse.json({ items, next_page_id: null });
+  }),
+
+  http.get("/api/conversations", async ({ request }) => {
+    const url = new URL(request.url);
+    const ids = url.searchParams.getAll("ids");
+    return HttpResponse.json(listConversationResponses(ids));
   }),
 
   http.get("/api/conversations/:conversationId", async ({ params }) => {
     const conversationId = params.conversationId as string;
-    const project = CONVERSATIONS.get(conversationId);
-    if (project) return HttpResponse.json(project);
+    const conversation = CONVERSATIONS.get(conversationId);
+    if (conversation) {
+      return HttpResponse.json(createConversationResponse(conversation));
+    }
     return HttpResponse.json(null, { status: 404 });
   }),
 
   http.post("/api/conversations", async () => {
     await delay();
-    const conversation: Conversation = {
-      conversation_id: (Math.random() * 100).toString(),
+    const conversation: MockConversation = {
+      id: `${Math.floor(Math.random() * 100000)}`,
       title: "New Conversation",
-      selected_repository: null,
-      git_provider: null,
-      selected_branch: null,
-      last_updated_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
-      status: "RUNNING",
-      runtime_status: "STATUS$READY",
-      url: null,
-      session_api_key: null,
+      updated_at: new Date().toISOString(),
+      execution_status: "idle",
     };
-    CONVERSATIONS.set(conversation.conversation_id, conversation);
-    return HttpResponse.json(conversation, { status: 201 });
+    CONVERSATIONS.set(conversation.id, conversation);
+    return HttpResponse.json(createConversationResponse(conversation), {
+      status: 201,
+    });
   }),
 
-  http.patch(
-    "/api/conversations/:conversationId",
-    async ({ params, request }) => {
-      const conversationId = params.conversationId as string;
-      const conversation = CONVERSATIONS.get(conversationId);
+  http.patch("/api/conversations/:conversationId", async ({ params, request }) => {
+    const conversationId = params.conversationId as string;
+    const conversation = CONVERSATIONS.get(conversationId);
 
-      if (conversation) {
-        const body = await request.json();
-        if (typeof body === "object" && body?.title) {
-          CONVERSATIONS.set(conversationId, {
-            ...conversation,
-            title: body.title,
-          });
-          return HttpResponse.json(null, { status: 200 });
-        }
+    if (conversation) {
+      const body = (await request.json()) as { title?: string } | null;
+      if (body?.title) {
+        CONVERSATIONS.set(conversationId, {
+          ...conversation,
+          title: body.title,
+          updated_at: new Date().toISOString(),
+        });
+        return HttpResponse.json(null, { status: 200 });
       }
-      return HttpResponse.json(null, { status: 404 });
-    },
-  ),
+    }
+    return HttpResponse.json(null, { status: 404 });
+  }),
 
   http.delete("/api/conversations/:conversationId", async ({ params }) => {
     const conversationId = params.conversationId as string;
@@ -119,6 +136,34 @@ export const CONVERSATION_HANDLERS = [
     }
     return HttpResponse.json(null, { status: 404 });
   }),
+
+  http.get("/api/conversations/:conversationId/events/count", async () =>
+    HttpResponse.json(0),
+  ),
+
+  http.get("/api/conversations/:conversationId/events/search", async () =>
+    HttpResponse.json({ items: [] }),
+  ),
+
+  http.post("/api/conversations/:conversationId/events", async () =>
+    HttpResponse.json({ ok: true }),
+  ),
+
+  http.post("/api/conversations/:conversationId/pause", async () =>
+    HttpResponse.json({ success: true }),
+  ),
+
+  http.post("/api/conversations/:conversationId/run", async () =>
+    HttpResponse.json({ success: true }),
+  ),
+
+  http.post("/api/conversations/:conversationId/ask_agent", async () =>
+    HttpResponse.json({ response: "Mock agent response" }),
+  ),
+
+  http.get("/api/vscode/url", async () => HttpResponse.json({ url: null })),
+
+  http.post("/api/skills", async () => HttpResponse.json({ skills: [] })),
 
   http.post(
     "/api/v1/conversations/:conversationId/pending-messages",

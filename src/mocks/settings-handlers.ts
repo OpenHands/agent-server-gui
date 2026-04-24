@@ -275,7 +275,7 @@ export const MOCK_DEFAULT_USER_SETTINGS: Settings = {
 const MOCK_USER_PREFERENCES: {
   settings: Settings | null;
 } = {
-  settings: null,
+  settings: structuredClone(MOCK_DEFAULT_USER_SETTINGS),
 };
 
 export const resetTestHandlersMockSettings = () => {
@@ -319,9 +319,51 @@ const MOCK_VERIFIED_PROVIDERS = [
   "minimax",
 ];
 
+const MOCK_MODEL_PROVIDERS = Array.from(
+  new Set(
+    MOCK_MODELS.map((model) => model.split("/")[0]).filter(
+      (provider): provider is string => Boolean(provider),
+    ),
+  ),
+);
+
+const MOCK_VERIFIED_MODELS_BY_PROVIDER = MOCK_MODELS.reduce<
+  Record<string, string[]>
+>((acc, model) => {
+  if (!MOCK_VERIFIED_MODELS.has(model)) return acc;
+
+  const [provider, ...rest] = model.split("/");
+  if (!provider || rest.length === 0) return acc;
+
+  acc[provider] ??= [];
+  acc[provider].push(rest.join("/"));
+  return acc;
+}, {});
+
 // --- Handlers for options/config/settings ---
 
 export const SETTINGS_HANDLERS = [
+  http.get("/server_info", async () =>
+    HttpResponse.json({
+      agents: ["CodeActAgent"],
+      default_agent: "CodeActAgent",
+      models: MOCK_MODELS,
+      security_analyzers: ["llm", "none"],
+    }),
+  ),
+
+  http.get("/api/llm/models", async () =>
+    HttpResponse.json({ models: MOCK_MODELS }),
+  ),
+
+  http.get("/api/llm/models/verified", async () =>
+    HttpResponse.json({ models: MOCK_VERIFIED_MODELS_BY_PROVIDER }),
+  ),
+
+  http.get("/api/llm/providers", async () =>
+    HttpResponse.json({ providers: MOCK_MODEL_PROVIDERS }),
+  ),
+
   // V0 (legacy) models endpoint – still used for default_model
   http.get("/api/options/models", async () =>
     HttpResponse.json({
@@ -430,6 +472,11 @@ export const SETTINGS_HANDLERS = [
     return HttpResponse.json(config);
   }),
 
+  http.get("/api/settings/conversation-schema", async () => {
+    await delay();
+    return HttpResponse.json(MOCK_CONVERSATION_SETTINGS_SCHEMA);
+  }),
+
   http.get("/api/v1/settings/conversation-schema", async () => {
     await delay();
     return HttpResponse.json(MOCK_CONVERSATION_SETTINGS_SCHEMA);
@@ -442,6 +489,11 @@ export const SETTINGS_HANDLERS = [
     if (!settings) return HttpResponse.json(null, { status: 404 });
 
     return HttpResponse.json(settings);
+  }),
+
+  http.get("/api/settings/agent-schema", async () => {
+    await delay();
+    return HttpResponse.json(MOCK_AGENT_SETTINGS_SCHEMA);
   }),
 
   http.get("/api/v1/settings/agent-schema", async () => {

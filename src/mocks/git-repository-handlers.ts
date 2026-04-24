@@ -230,4 +230,11 @@ export const GIT_REPOSITORY_HANDLERS = [
 
     return HttpResponse.json(limitedBranches);
   }),
+
+  http.get("/api/git/changes", async () => HttpResponse.json([])),
+
+  http.get(
+    "/api/git/diff",
+    async () => HttpResponse.json({ original: "", modified: "" }),
+  ),
 ];
