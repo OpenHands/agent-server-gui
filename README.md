@@ -1,8 +1,8 @@
-# Getting Started with the OpenHands Frontend
+# Getting Started with agent-server-gui
 
 ## Overview
 
-This is the frontend of the OpenHands project. It is a React application that provides a web interface for the OpenHands project.
+This repository is a near-direct port of the OpenHands frontend adapted to talk directly to `software-agent-sdk` / `agent_server` without the usual OpenHands app backend.
 
 ## Tech Stack
 
@@ -27,10 +27,10 @@ This is the frontend of the OpenHands project. It is a React application that pr
 
 ```sh
 # Clone the repository
-git clone https://github.com/OpenHands/OpenHands.git
+git clone https://github.com/neubig/agent-server-gui.git
 
-# Change the directory to the frontend
-cd OpenHands/frontend
+# Change to the project directory
+cd agent-server-gui
 
 # Install the dependencies
 npm install
@@ -38,61 +38,65 @@ npm install
 
 ### Running the Application in Development Mode
 
-We use `msw` to mock the backend API. To start the application with the mocked backend, run the following command:
+Start a local `agent_server` separately, then run the frontend dev server:
 
 ```sh
 npm run dev
 ```
 
-This will start the application in development mode. Open [http://localhost:3001](http://localhost:3001) to view it in the browser.
+This starts the frontend on [http://localhost:3001](http://localhost:3001).
+By default it proxies API and WebSocket requests to `http://127.0.0.1:8000`.
 
-**NOTE: The backend is _partially_ mocked using `msw`. Therefore, some features may not work as they would with the actual backend.**
-
-See the [Development.md](../Development.md) for extra tips on how to run in development mode.
-
-### Running the Application with the Actual Backend (Production Mode)
-
-To run the application with the actual backend:
+If you want to run against mocked APIs instead, use:
 
 ```sh
-# Build the application from the root directory
-make build
-
-# Start the application
-make run
-```
-Or to run backend and frontend separately.
-
-```sh
-# Start the backend from the root directory
-make start-backend
-
-# Serve the frontend
-make start-frontend or
-cd frontend && npm start -- --port 3001
+npm run dev:mock
+# or
+npm run dev:mock:saas
 ```
 
-Start frontend with Mock Service Worker (MSW), see testing for more info.
+### Building for Production
+
+There is no `Makefile` in this repository. Use the npm scripts instead:
+
 ```sh
-npm run dev:mock or npm run dev:mock:saas
+npm run build
+npm run start
+```
+
+### Running Against a Real agent_server
+
+A typical local setup is:
+
+```sh
+# terminal 1: start the backend
+# example only; use whatever command you use to run agent_server
+openhands-agent-server
+
+# terminal 2: start the frontend
+npm run dev
 ```
 
 ### Environment Variables
 
 The frontend application uses the following environment variables:
 
-| Variable                    | Description                                                            | Default Value    |
-| --------------------------- | ---------------------------------------------------------------------- | ---------------- |
-| `VITE_BACKEND_BASE_URL`     | The backend hostname without protocol (used for WebSocket connections) | `localhost:3000` |
-| `VITE_BACKEND_HOST`         | The backend host with port for API connections                         | `127.0.0.1:3000` |
-| `VITE_MOCK_API`             | Enable/disable API mocking with MSW                                    | `false`          |
-| `VITE_MOCK_SAAS`            | Simulate SaaS mode in development                                      | `false`          |
-| `VITE_USE_TLS`              | Use HTTPS/WSS for backend connections                                  | `false`          |
-| `VITE_FRONTEND_PORT`        | Port to run the frontend application                                   | `3001`           |
-| `VITE_INSECURE_SKIP_VERIFY` | Skip TLS certificate verification                                      | `false`          |
-| `VITE_GITHUB_TOKEN`         | GitHub token for repository access (used in some tests)                | -                |
+| Variable                    | Description                                                                          | Default Value            |
+| --------------------------- | ------------------------------------------------------------------------------------ | ------------------------ |
+| `VITE_BACKEND_BASE_URL`     | Full base URL for the agent server used by direct browser requests                   | current browser origin   |
+| `VITE_BACKEND_HOST`         | Backend host used by the Vite dev proxy                                              | `127.0.0.1:8000`         |
+| `VITE_SESSION_API_KEY`      | Optional `X-Session-API-Key` header value for authenticated agent_server instances   | -                        |
+| `VITE_WORKING_DIR`          | Workspace path sent when starting new conversations                                  | `/workspace/project`     |
+| `VITE_WORKER_URLS`          | Optional comma-separated worker/app URLs for the Browser tab                         | -                        |
+| `VITE_ENABLE_BROWSER_TOOLS` | Set to `false` to omit `BrowserToolSet` from new conversation payloads               | `true`                   |
+| `VITE_MOCK_API`             | Enable/disable API mocking with MSW                                                  | `false`                  |
+| `VITE_MOCK_SAAS`            | Simulate SaaS mode in development                                                    | `false`                  |
+| `VITE_USE_TLS`              | Use HTTPS/WSS for the Vite proxy target                                              | `false`                  |
+| `VITE_FRONTEND_PORT`        | Port to run the frontend application                                                 | `3001`                   |
+| `VITE_INSECURE_SKIP_VERIFY` | Skip TLS certificate verification for proxied backend requests                       | `false`                  |
+| `VITE_GITHUB_TOKEN`         | GitHub token for repository access (used in some tests)                              | -                        |
 
-You can create a `.env` file in the frontend directory with these variables based on the `.env.sample` file.
+You can create a `.env` file in the project directory with these variables based on `.env.sample`.
 
 ### Project Structure
 
