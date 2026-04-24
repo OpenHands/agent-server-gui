@@ -1,9 +1,17 @@
 {
-  "name": "openhands-frontend",
+  "name": "@openhands/agent-server-gui",
   "version": "1.6.0",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpenHands/agent-server-gui.git"
+  },
+  "homepage": "https://github.com/OpenHands/agent-server-gui",
+  "bugs": {
+    "url": "https://github.com/OpenHands/agent-server-gui/issues"
+  },
   "engines": {
     "node": ">=22.12.0"
   },
@@ -64,7 +72,7 @@
     "prelint": "npm run make-i18n",
     "lint": "npm run typecheck && eslint src --ext .ts,.tsx,.js && prettier --check src/**/*.{ts,tsx}",
     "lint:fix": "eslint src --ext .ts,.tsx,.js --fix && prettier --write src/**/*.{ts,tsx}",
-    "prepare": "cd .. && husky frontend/.husky",
+    "prepare": "node scripts/setup-husky.cjs",
     "typecheck": "react-router typegen && tsc",
     "typecheck:staged": "react-router typegen && npx tsc --noEmit --skipLibCheck",
     "check-translation-completeness": "node scripts/check-translation-completeness.cjs"

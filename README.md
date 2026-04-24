@@ -113,6 +113,32 @@ npm run dev:mock
 npm run dev:mock:saas
 ```
 
+
+## Consuming this repo as a GitHub-installed frontend package
+
+This repository can also be consumed directly from GitHub by another Vite/React frontend.
+It stays frontend-only: it does not ship or require a separate backend of its own beyond the
+`agent-server` APIs described above.
+
+Install it with npm:
+
+```sh
+npm install github:OpenHands/agent-server-gui
+```
+
+Then import route modules or components directly from the package source tree:
+
+```ts
+export { default } from "@openhands/agent-server-gui/src/routes/home";
+```
+
+```tsx
+import { ChatInterface } from "@openhands/agent-server-gui/src/components/features/chat/chat-interface";
+```
+
+The package is intentionally source-first for now so that host applications can wrap or override
+selected modules while reusing the shared UI from this repo.
+
 ## Overview
 
 This repository is a near-direct port of the OpenHands frontend adapted to talk directly to `software-agent-sdk` / `agent_server` without the usual OpenHands app backend.

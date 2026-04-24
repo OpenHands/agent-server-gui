@@ -2,35 +2,35 @@
   "name": "@openhands/typescript-client",
   "version": "0.1.2",
   "description": "TypeScript client for OpenHands Agent Server",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./clients": {
-      "types": "./dist/clients.d.ts",
-      "import": "./dist/clients.js",
-      "default": "./dist/clients.js"
+      "types": "./src/clients.ts",
+      "import": "./src/clients.ts",
+      "default": "./src/clients.ts"
     },
     "./client/http-client": {
-      "types": "./dist/client/http-client.d.ts",
-      "import": "./dist/client/http-client.js",
-      "default": "./dist/client/http-client.js"
+      "types": "./src/client/http-client.ts",
+      "import": "./src/client/http-client.ts",
+      "default": "./src/client/http-client.ts"
     },
     "./events/remote-events-list": {
-      "types": "./dist/events/remote-events-list.d.ts",
-      "import": "./dist/events/remote-events-list.js",
-      "default": "./dist/events/remote-events-list.js"
+      "types": "./src/events/remote-events-list.ts",
+      "import": "./src/events/remote-events-list.ts",
+      "default": "./src/events/remote-events-list.ts"
     },
     "./workspace/remote-workspace": {
-      "types": "./dist/workspace/remote-workspace.d.ts",
-      "import": "./dist/workspace/remote-workspace.js",
-      "default": "./dist/workspace/remote-workspace.js"
+      "types": "./src/workspace/remote-workspace.ts",
+      "import": "./src/workspace/remote-workspace.ts",
+      "default": "./src/workspace/remote-workspace.ts"
     }
   },
   "overrides": {
@@ -86,7 +86,7 @@
     "typescript-eslint": "^8.58.2"
   },
   "files": [
-    "dist/**/*"
+    "src/**/*"
   ],
   "repository": {
     "type": "git",

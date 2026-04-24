@@ -50,3 +50,8 @@
 
 
 
+- This repo is now packaged as `@openhands/agent-server-gui` and is intended to be installable from GitHub via npm for source-first UI reuse by other frontends.
+- `package.json` uses a guarded `prepare` script (`scripts/setup-husky.cjs`) so local repo installs still enable Husky, but git/npm dependency installs skip hook setup.
+- `src/i18n/declaration.ts` is committed so consumers and this repo's own `query-client-config.ts` can import `#/i18n/declaration` without relying on another repo to generate it first.
+- The vendored `vendor/openhands-typescript-client/package.json` points its exports at `src/` files instead of missing `dist/` artifacts so Vite can resolve the client subpath imports during builds.
+
