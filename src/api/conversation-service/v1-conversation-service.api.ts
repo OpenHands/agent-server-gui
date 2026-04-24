@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getAgentServerWorkingDir } from "../agent-server-config";
 import { openHands } from "../open-hands-axios";
 import { ConversationTrigger, GetVSCodeUrlResponse } from "../open-hands.types";
 import { Provider } from "#/types/settings";
@@ -97,6 +98,13 @@ class V1ConversationService {
   ): Promise<GetVSCodeUrlResponse> {
     const { data } = await openHands.get<{ url: string | null }>(
       "/api/vscode/url",
+      {
+        params: {
+          base_url:
+            typeof window !== "undefined" ? window.location.origin : undefined,
+          workspace_dir: getAgentServerWorkingDir(),
+        },
+      },
     );
     return { vscode_url: data.url };
   }

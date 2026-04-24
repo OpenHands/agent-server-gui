@@ -1,4 +1,5 @@
 import { AxiosHeaders } from "axios";
+import { getAgentServerWorkingDir } from "../agent-server-config";
 import {
   GetVSCodeUrlResponse,
   GetTrajectoryResponse,
@@ -60,6 +61,11 @@ class ConversationService {
       "/api/vscode/url",
       {
         headers: this.getConversationHeaders(),
+        params: {
+          base_url:
+            typeof window !== "undefined" ? window.location.origin : undefined,
+          workspace_dir: getAgentServerWorkingDir(),
+        },
       },
     );
     return { vscode_url: data.url };

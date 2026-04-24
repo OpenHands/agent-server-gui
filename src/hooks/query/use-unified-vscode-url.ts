@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useConversationId } from "#/hooks/use-conversation-id";
 import { I18nKey } from "#/i18n/declaration";
+import ConversationService from "#/api/conversation-service/conversation-service.api";
+import V1ConversationService from "#/api/conversation-service/v1-conversation-service.api";
 import { transformVSCodeUrl } from "#/utils/vscode-url-helper";
 import { useRuntimeIsReady } from "#/hooks/use-runtime-is-ready";
-import { useBatchAppConversations } from "./use-batch-app-conversations";
-import { useBatchSandboxes } from "./use-batch-sandboxes";
 
 interface VSCodeUrlResult {
   url: string | null;
@@ -13,71 +13,44 @@ interface VSCodeUrlResult {
 }
 
 /**
- * Unified hook to get VSCode URL for both legacy (V0) and V1 conversations
- * - V0: Uses the legacy getVSCodeUrl API endpoint
- * - V1: Gets the VSCode URL from sandbox exposed_urls
+ * Unified hook to get a VSCode URL.
+ *
+ * In direct agent_server mode we ask `/api/vscode/url` directly instead of
+ * relying on sandbox `exposed_urls`, because newer agent_server-compatible
+ * clients expose VSCode as a dedicated API.
  */
 export const useUnifiedVSCodeUrl = () => {
   const { t } = useTranslation();
   const { conversationId } = useConversationId();
   const runtimeIsReady = useRuntimeIsReady({ allowAgentError: true });
 
-  // Fetch V1 app conversation to get sandbox_id
-  const appConversationsQuery = useBatchAppConversations(
-    conversationId ? [conversationId] : [],
-  );
-  const appConversation = appConversationsQuery.data?.[0];
-  const sandboxId = appConversation?.sandbox_id;
-
-  // Fetch sandbox data for V1 conversations
-  const sandboxesQuery = useBatchSandboxes(sandboxId ? [sandboxId] : []);
-  const sandbox = sandboxesQuery?.data?.[0];
-
   const mainQuery = useQuery<VSCodeUrlResult>({
-    queryKey: ["unified", "vscode_url", conversationId, sandbox],
+    queryKey: ["unified", "vscode_url", conversationId],
     queryFn: async () => {
       if (!conversationId) throw new Error("No conversation ID");
 
-      // V1: Get VSCode URL from sandbox exposed_urls
-      if (!sandbox) {
-        return {
-          url: null,
-          error: t(I18nKey.VSCODE$URL_NOT_AVAILABLE),
-        };
-      }
-
-      const vscodeUrl = sandbox.exposed_urls?.find(
-        (url) => url.name === "VSCODE",
-      );
-
-      if (!vscodeUrl) {
-        return {
-          url: null,
-          error: t(I18nKey.VSCODE$URL_NOT_AVAILABLE),
-        };
-      }
+      const response = await V1ConversationService.getVSCodeUrl(
+        conversationId,
+        null,
+        null,
+      ).catch(() => ConversationService.getVSCodeUrl(conversationId));
 
       return {
-        url: transformVSCodeUrl(vscodeUrl.url),
-        error: null,
+        url: transformVSCodeUrl(response.vscode_url),
+        error: response.vscode_url
+          ? null
+          : t(I18nKey.VSCODE$URL_NOT_AVAILABLE),
       };
     },
-    enabled: runtimeIsReady && !!conversationId && !!sandboxesQuery.data,
+    enabled: runtimeIsReady && !!conversationId,
     refetchOnMount: true,
     retry: 3,
   });
 
-  // Calculate overall loading state including dependent queries for V1
-  const isLoading =
-    appConversationsQuery.isLoading ||
-    sandboxesQuery.isLoading ||
-    mainQuery.isLoading;
-
-  // Explicitly destructure to avoid excessive re-renders from spreading the entire query object
   return {
     data: mainQuery.data,
     error: mainQuery.error,
-    isLoading,
+    isLoading: mainQuery.isLoading,
     isError: mainQuery.isError,
     isSuccess: mainQuery.isSuccess,
     status: mainQuery.status,
