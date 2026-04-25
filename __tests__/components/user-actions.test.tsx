@@ -13,14 +13,6 @@ vi.mock("#/hooks/use-settings-nav-items", () => ({
   ],
 }));
 
-vi.mock("#/hooks/use-breakpoint", () => ({
-  useBreakpoint: () => false,
-}));
-
-vi.mock("#/components/features/context-menu/context-menu-cta", () => ({
-  ContextMenuCTA: () => <div data-testid="context-menu-cta" />,
-}));
-
 describe("UserActions", () => {
   it("shows the OSS user menu on hover without SaaS-only actions", async () => {
     const user = userEvent.setup();
@@ -40,5 +32,6 @@ describe("UserActions", () => {
     expect(screen.getByText("SETTINGS$NAV_APPLICATION")).toBeInTheDocument();
     expect(screen.getByText("SIDEBAR$DOCS")).toBeInTheDocument();
     expect(screen.queryByText("ACCOUNT_SETTINGS$LOGOUT")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("context-menu-cta")).not.toBeInTheDocument();
   });
 });

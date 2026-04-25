@@ -5,6 +5,7 @@ import {
   SkillsClient,
   VSCodeClient,
 } from "@openhands/typescript-client/clients";
+export type { ServerInfo } from "@openhands/typescript-client";
 import { HttpClient } from "@openhands/typescript-client/client/http-client";
 import { RemoteEventsList } from "@openhands/typescript-client/events/remote-events-list";
 import { RemoteWorkspace } from "@openhands/typescript-client/workspace/remote-workspace";
@@ -21,6 +22,7 @@ interface TypeScriptClientOverrides {
   sessionApiKey?: string | null;
   workingDir?: string;
   conversationUrl?: string | null;
+  timeout?: number;
 }
 
 interface ResolvedClientOptions {
@@ -55,7 +57,11 @@ export function createServerClient(
   overrides?: TypeScriptClientOverrides,
 ): ServerClient {
   const { host, apiKey } = resolveClientOptions(overrides);
-  return new ServerClient({ host, ...(apiKey ? { apiKey } : {}) });
+  return new ServerClient({
+    host,
+    ...(apiKey ? { apiKey } : {}),
+    ...(overrides?.timeout ? { timeout: overrides.timeout } : {}),
+  });
 }
 
 export function createLlmMetadataClient(

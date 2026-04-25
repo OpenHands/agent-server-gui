@@ -1,11 +1,9 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useBreakpoint } from "#/hooks/use-breakpoint";
 import { cn } from "#/utils/utils";
 import { useSettingsNavItems } from "#/hooks/use-settings-nav-items";
 import DocumentIcon from "#/icons/document.svg?react";
 import { ContextMenuContainer } from "../context-menu/context-menu-container";
-import { ContextMenuCTA } from "../context-menu/context-menu-cta";
 import { ContextMenuNavLink } from "../context-menu/context-menu-nav-link";
 import { SettingsNavHeader } from "../settings/settings-nav-header";
 import { SettingsNavDivider } from "../settings/settings-nav-divider";
@@ -21,9 +19,7 @@ interface UserContextMenuProps {
 
 export function UserContextMenu({ onClose }: UserContextMenuProps) {
   const { t } = useTranslation();
-  const isMobile = useBreakpoint(768);
   const settingsNavItems = useSettingsNavItems();
-  const isCTAEnabled = !isMobile;
 
   return (
     <ContextMenuContainer testId="user-context-menu" onClose={onClose}>
@@ -76,8 +72,6 @@ export function UserContextMenu({ onClose }: UserContextMenuProps) {
           </a>
         </div>
       </div>
-
-      {isCTAEnabled && <ContextMenuCTA />}
     </ContextMenuContainer>
   );
 }
