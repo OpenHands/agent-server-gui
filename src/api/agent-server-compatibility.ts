@@ -1,0 +1,118 @@
+import { createServerClient, type ServerInfo } from "#/api/typescript-client";
+import { HttpError } from "@openhands/typescript-client/client/http-client";
+
+export const MINIMUM_SUPPORTED_AGENT_SERVER_VERSION = "1.17.0";
+const AGENT_SERVER_INFO_TIMEOUT_MS = 5000;
+
+const SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/;
+
+const getServerVersion = (serverInfo: ServerInfo): string => serverInfo.version;
+
+const parseSemver = (
+  version: string | null,
+): [number, number, number] | null => {
+  if (!version) {
+    return null;
+  }
+
+  const match = version.match(SEMVER_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  return match.slice(1, 4).map(Number) as [number, number, number];
+};
+
+const isSupportedAgentServerVersion = (serverVersion: string | null) => {
+  const parsedVersion = parseSemver(serverVersion);
+  const minimumVersion = parseSemver(MINIMUM_SUPPORTED_AGENT_SERVER_VERSION);
+
+  if (!parsedVersion || !minimumVersion) {
+    return false;
+  }
+
+  for (let index = 0; index < minimumVersion.length; index += 1) {
+    if (parsedVersion[index] > minimumVersion[index]) {
+      return true;
+    }
+
+    if (parsedVersion[index] < minimumVersion[index]) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const buildCompatibilityMessage = (serverVersion: string | null) => {
+  const versionMessage = serverVersion
+    ? `Connected agent server version ${serverVersion} is not compatible with this frontend.`
+    : "The connected agent server version could not be determined.";
+
+  return `${versionMessage} This frontend requires agent server version ${MINIMUM_SUPPORTED_AGENT_SERVER_VERSION} or newer. Upgrade the agent server and reload the page.`;
+};
+
+export class AgentServerIncompatibilityError extends Error {
+  readonly serverVersion: string | null;
+
+  constructor(serverVersion: string | null) {
+    super(buildCompatibilityMessage(serverVersion));
+    this.name = "AgentServerIncompatibilityError";
+    this.serverVersion = serverVersion;
+  }
+}
+
+export class AgentServerUnavailableError extends Error {
+  readonly details: string | null;
+
+  constructor(details?: string | null) {
+    super(
+      "Agent server not found. Could not connect to the configured agent server. Start a compatible agent server and reload the page.",
+    );
+    this.name = "AgentServerUnavailableError";
+    this.details = details ?? null;
+  }
+}
+
+export const isAgentServerIncompatibilityError = (
+  error: unknown,
+): error is AgentServerIncompatibilityError =>
+  error instanceof AgentServerIncompatibilityError ||
+  (typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AgentServerIncompatibilityError");
+
+export const isAgentServerUnavailableError = (
+  error: unknown,
+): error is AgentServerUnavailableError =>
+  error instanceof AgentServerUnavailableError ||
+  (typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    error.name === "AgentServerUnavailableError");
+
+export async function ensureCompatibleAgentServer() {
+  let serverInfo: ServerInfo;
+
+  try {
+    serverInfo = await createServerClient({
+      timeout: AGENT_SERVER_INFO_TIMEOUT_MS,
+    }).getServerInfo();
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+
+    const details = error instanceof Error ? error.message : null;
+    throw new AgentServerUnavailableError(details);
+  }
+
+  const serverVersion = getServerVersion(serverInfo);
+
+  if (!isSupportedAgentServerVersion(serverVersion)) {
+    throw new AgentServerIncompatibilityError(serverVersion);
+  }
+
+  return serverInfo;
+}
