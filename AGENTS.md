@@ -29,6 +29,7 @@
   - settings schemas: `/api/settings/agent-schema`, `/api/settings/conversation-schema`
   - conversation browsing/loading: `/api/conversations/search`, `/api/conversations?ids=...`, `/api/conversations/:id`, `/api/conversations/:id/events/*`
   - runtime git panels: `/api/git/changes`, `/api/git/diff`
+- Static mock verification needs a build created with `VITE_MOCK_API=true` (use `npm run build:mock`); the client must start MSW whenever that flag is enabled, even in production/static builds, otherwise routes like `/settings` and the conversations pane fall through to the static server and crash on undefined `.filter`/`.map` assumptions.
 - Useful regression tests for mock mode live in `__tests__/api/option-service.test.ts`, `__tests__/api/mock-conversation-handlers.test.ts`, and `__tests__/api/mock-settings-handlers.test.ts`.
 - Browser-verified mock-mode tour artifact was generated at `artifacts/frontend-tour.gif`.
 - Live `agent_server` compatibility quirks discovered during browser verification:
