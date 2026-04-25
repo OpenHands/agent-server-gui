@@ -11,17 +11,26 @@ If you only read one section of this README, read this one. Most users will want
 
 ### Special case: developing inside OpenHands Cloud
 
-If you are editing this repo from an OpenHands Cloud sandbox, **do not start a second `agent-server` process inside the same sandbox**.
+If you are editing this repo from an OpenHands Cloud sandbox, **do not point this frontend at the sandbox's existing agent-server**.
 
-Current `agent-server` releases share the default `openhands` tmux socket and `workspace/conversations` persistence directory. Starting another server in the same sandbox can break the OpenHands conversation that is powering your cloud session (for example with errors like `no server running on /tmp/tmux-*/openhands`).
+Current `agent-server` releases share the default `openhands` tmux socket and `workspace/conversations` persistence directory. A naive second server in the same sandbox can break the OpenHands conversation that is powering your cloud session (for example with errors like `no server running on /tmp/tmux-*/openhands`). Reusing the cloud session's existing backend is also not the intended development flow.
 
-Use one of these workflows instead:
+For safe live debugging, use:
 
-1. **Reuse the sandbox's existing backend** (recommended): just run `npm install` and `npm run dev`. The frontend's default localhost/proxy setup is compatible with the agent-server that OpenHands Cloud already started for the current sandbox.
-2. **Use a fully isolated frontend-only flow**: run `npm run dev:mock`.
-3. **Need a separate live backend?** Start it in a different machine/container/sandbox, not alongside the OpenHands Cloud backend in the same runtime.
+```sh
+npm run dev:safe
+```
 
-For the first workflow, also set `VITE_WORKING_DIR=/workspace/project/agent-server-gui` (or your repo root) so new conversations and Git panels point at this checkout instead of the parent workspace.
+That command starts a dedicated local `agent-server` for this checkout on `127.0.0.1:18000` and points the frontend at it. It expects `agent-server` to already be installed and on your `PATH`. It isolates tmux state and conversation persistence by setting separate `TMUX_TMPDIR`, `OH_CONVERSATIONS_PATH`, `OH_BASH_EVENTS_DIR`, and `OH_VSCODE_PORT` values under `.openhands-dev/`, so it does not collide with the OpenHands Cloud backend already running in the sandbox.
+
+Useful overrides:
+
+- `OH_GUI_SAFE_BACKEND_PORT` — backend port for the isolated server (default `18000`)
+- `OH_GUI_SAFE_VSCODE_PORT` — VS Code sidecar port (default `backend port + 1`)
+- `OH_GUI_SAFE_STATE_DIR` — base directory for isolated server state
+- `VITE_WORKING_DIR` — repo root used for new conversations (defaults to the current checkout)
+
+If you would rather run the backend somewhere else entirely, point `VITE_BACKEND_HOST` / `VITE_BACKEND_BASE_URL` at that separate backend instead. For frontend-only work, use `npm run dev:mock`.
 
 If you are **not** inside an OpenHands Cloud sandbox, follow the standard local setup below.
 

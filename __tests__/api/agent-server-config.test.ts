@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  getAgentServerBaseUrl,
-  getCloudDevelopmentWarning,
-  isLikelyOpenHandsCloudRuntime,
-} from "#/api/agent-server-config";
+import { getAgentServerBaseUrl } from "#/api/agent-server-config";
 
 const STORAGE_KEY = "openhands-agent-server-config";
 const ORIGINAL_LOCATION = window.location;
@@ -45,20 +41,3 @@ describe("getAgentServerBaseUrl", () => {
   });
 });
 
-describe("OpenHands Cloud runtime detection", () => {
-  it("detects OpenHands Cloud runtime hosts", () => {
-    mockWindowLocation("https://work-1.example.prod-runtime.all-hands.dev/");
-
-    expect(isLikelyOpenHandsCloudRuntime()).toBe(true);
-    expect(getCloudDevelopmentWarning()).toContain(
-      "do not start a second `agent-server`",
-    );
-  });
-
-  it("does not warn for non-OpenHands hosts", () => {
-    mockWindowLocation("https://frontend.example.com/");
-
-    expect(isLikelyOpenHandsCloudRuntime()).toBe(false);
-    expect(getCloudDevelopmentWarning()).toBeNull();
-  });
-});

@@ -1,19 +1,5 @@
 const STORAGE_KEY = "openhands-agent-server-config";
 
-const OPENHANDS_CLOUD_RUNTIME_HOST_PATTERNS = [
-  /(^|\.)[^.]*runtime\.all-hands\.dev$/i,
-  /(^|\.)[^.]*runtime\.openhands\.ai$/i,
-  /^work-.*\.all-hands\.dev$/i,
-  /^work-.*\.openhands\.ai$/i,
-];
-
-const CLOUD_DEVELOPMENT_WARNING = [
-  "OpenHands Cloud sandbox detected.",
-  "Reuse the sandbox's existing agent-server and do not start a second `agent-server` in this sandbox.",
-  "Current agent-server releases share tmux and conversation state across server instances, which can break the conversation backing OpenHands Cloud.",
-  "Use `npm run dev:mock` if you need a fully isolated frontend-only workflow.",
-].join(" ");
-
 interface StoredAgentServerConfig {
   baseUrl?: string | null;
   sessionApiKey?: string | null;
@@ -79,20 +65,6 @@ function resolveAgentServerBaseUrl(baseUrl: string | null): string | null {
   }
 
   return baseUrl;
-}
-
-export function isLikelyOpenHandsCloudRuntime(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return OPENHANDS_CLOUD_RUNTIME_HOST_PATTERNS.some((pattern) =>
-    pattern.test(window.location.hostname),
-  );
-}
-
-export function getCloudDevelopmentWarning(): string | null {
-  return isLikelyOpenHandsCloudRuntime() ? CLOUD_DEVELOPMENT_WARNING : null;
 }
 
 export function getAgentServerBaseUrl(): string {
