@@ -18,7 +18,7 @@ If you only read one section of this README, read this one. Most users will want
 ### 1. Clone and install the frontend
 
 ```sh
-git clone https://github.com/neubig/agent-server-gui.git
+git clone https://github.com/OpenHands/agent-server-gui.git
 cd agent-server-gui
 npm install
 ```
