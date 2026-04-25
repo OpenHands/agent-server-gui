@@ -11,7 +11,7 @@
     "@heroui/react": "2.8.7",
     "@microlink/react-json-view": "^1.27.1",
     "@monaco-editor/react": "^4.7.0-rc.0",
-    "@openhands/typescript-client": "file:vendor/openhands-typescript-client",
+    "@openhands/typescript-client": "github:OpenHands/typescript-client#4716d2e",
     "@react-router/node": "^7.12.0",
     "@react-router/serve": "^7.12.0",
     "@tailwindcss/vite": "^4.1.18",

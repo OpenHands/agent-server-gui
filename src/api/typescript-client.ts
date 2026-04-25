@@ -4,11 +4,11 @@ import {
   SettingsClient,
   SkillsClient,
   VSCodeClient,
-} from "../../vendor/openhands-typescript-client/src/clients";
-export type { ServerInfo } from "../../vendor/openhands-typescript-client/src/types/base";
-import { HttpClient } from "../../vendor/openhands-typescript-client/src/client/http-client";
-import { RemoteEventsList } from "../../vendor/openhands-typescript-client/src/events/remote-events-list";
-import { RemoteWorkspace } from "../../vendor/openhands-typescript-client/src/workspace/remote-workspace";
+} from "@openhands/typescript-client/clients";
+export type { ServerInfo } from "@openhands/typescript-client";
+import { HttpClient } from "@openhands/typescript-client/client/http-client";
+import { RemoteEventsList } from "@openhands/typescript-client/events/remote-events-list";
+import { RemoteWorkspace } from "@openhands/typescript-client/workspace/remote-workspace";
 import { buildHttpBaseUrl } from "#/utils/websocket-url";
 import {
   getAgentServerBaseUrl,
