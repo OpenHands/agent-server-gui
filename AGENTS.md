@@ -21,6 +21,8 @@
   - The vendored `@openhands/typescript-client` dependency is a symlink into `vendor/openhands-typescript-client`; if its `dist/` output is missing, rebuild it with `npm --prefix vendor/openhands-typescript-client run build` before typecheck/build.
   - Vitest should exclude `vendor/**` so the vendored package's own tests do not get collected by the app test suite.
 - Phase-1 OSS cleanup removed SaaS-only auth/org/billing/onboarding/payment/invitation codepaths, routes, and tests. Keep `integrations`, `git-settings`, `secrets`, MCP settings, and other local/self-hosted flows intact when simplifying OSS behavior.
+- During the Phase-1 OSS cleanup audit, the runtime SaaS removals held up, but route-level regression coverage for still-active OSS settings pages had been deleted too aggressively. Keep focused tests for local/self-hosted screens like `app-settings`, `llm-settings`, `git-settings`, `mcp-settings`, and `secrets-settings` even when stripping SaaS-only code.
+
 
 - Root `tsconfig.json` excludes `vendor/openhands-typescript-client` so the frontend typecheck only covers the app code.
 

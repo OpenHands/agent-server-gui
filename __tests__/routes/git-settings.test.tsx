@@ -1,0 +1,78 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import GitSettingsScreen, { clientLoader } from "#/routes/git-settings";
+import SettingsService from "#/api/settings-service/settings-service.api";
+import { MOCK_DEFAULT_USER_SETTINGS } from "#/mocks/handlers";
+import { Settings } from "#/types/settings";
+
+function buildSettings(overrides: Partial<Settings> = {}): Settings {
+  return {
+    ...MOCK_DEFAULT_USER_SETTINGS,
+    ...overrides,
+    provider_tokens_set: {
+      ...MOCK_DEFAULT_USER_SETTINGS.provider_tokens_set,
+      ...overrides.provider_tokens_set,
+    },
+    agent_settings: {
+      ...MOCK_DEFAULT_USER_SETTINGS.agent_settings,
+      ...overrides.agent_settings,
+    },
+  };
+}
+
+function renderGitSettingsScreen() {
+  return render(<GitSettingsScreen />, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider
+        client={new QueryClient({
+          defaultOptions: { queries: { retry: false } },
+        })}
+      >
+        {children}
+      </QueryClientProvider>
+    ),
+  });
+}
+
+describe("GitSettingsScreen", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders OSS git provider token inputs", async () => {
+    vi.spyOn(SettingsService, "getSettings").mockResolvedValue(buildSettings());
+
+    renderGitSettingsScreen();
+
+    const githubTokenInput = await screen.findByTestId("github-token-input");
+
+    expect(githubTokenInput).toBeInTheDocument();
+    expect(screen.getByTestId("gitlab-token-input")).toBeInTheDocument();
+    expect(screen.getByTestId("submit-button")).toBeDisabled();
+  });
+
+  it("enables saving after a provider token changes", async () => {
+    vi.spyOn(SettingsService, "getSettings").mockResolvedValue(buildSettings());
+
+    renderGitSettingsScreen();
+
+    const user = userEvent.setup();
+    const githubTokenInput = await screen.findByTestId("github-token-input");
+    const submitButton = screen.getByTestId("submit-button");
+
+    expect(submitButton).toBeDisabled();
+
+    await user.type(githubTokenInput, "ghp_test_token");
+
+    expect(submitButton).toBeEnabled();
+  });
+});
+
+describe("clientLoader permission checks", () => {
+  it("exports a clientLoader", () => {
+    expect(clientLoader).toBeDefined();
+    expect(typeof clientLoader).toBe("function");
+  });
+});
