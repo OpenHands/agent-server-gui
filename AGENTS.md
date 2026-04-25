@@ -16,6 +16,12 @@
 - Verification command: `npm run typecheck && npm run build`.
 - `@openhands/typescript-client` is currently consumed via a vendored local file dependency at `vendor/openhands-typescript-client` because anonymous/public GitHub Packages install was not usable in this environment. The vendored package is pinned to `v0.1.2`, keeps built `dist/` output committed, and exposes extra subpath exports for `client/http-client`, `events/remote-events-list`, and `workspace/remote-workspace`.
 - Shared TypeScript-client adapters live in `src/api/typescript-client.ts`; prefer those helpers for agent-server-backed REST/workspace/event/VS Code calls before falling back to `open-hands-axios`.
+- Local verification/build gotchas:
+  - `npm run typecheck` assumes generated translation types exist; run `npm run make-i18n` first if `src/i18n/declaration.ts` is missing.
+  - The vendored `@openhands/typescript-client` dependency is a symlink into `vendor/openhands-typescript-client`; if its `dist/` output is missing, rebuild it with `npm --prefix vendor/openhands-typescript-client run build` before typecheck/build.
+  - Vitest should exclude `vendor/**` so the vendored package's own tests do not get collected by the app test suite.
+- Phase-1 OSS cleanup removed SaaS-only auth/org/billing/onboarding/payment/invitation codepaths, routes, and tests. Keep `integrations`, `git-settings`, `secrets`, MCP settings, and other local/self-hosted flows intact when simplifying OSS behavior.
+
 - Root `tsconfig.json` excludes `vendor/openhands-typescript-client` so the frontend typecheck only covers the app code.
 
 - `npm run dev:mock` needs MSW handlers for the direct agent-server routes used by the adapted frontend, not the original OpenHands mock paths. Key routes that must stay covered are:

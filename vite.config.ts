@@ -120,7 +120,7 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "jsdom",
       setupFiles: ["vitest.setup.ts"],
-      exclude: [...configDefaults.exclude, "tests"],
+      exclude: [...configDefaults.exclude, "tests", "vendor/**"],
       coverage: {
         reporter: ["text", "json", "html", "lcov", "text-summary"],
         reportsDirectory: "coverage",

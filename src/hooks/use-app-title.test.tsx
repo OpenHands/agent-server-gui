@@ -2,7 +2,6 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useParams } from "react-router";
-import OptionService from "#/api/option-service/option-service.api";
 import { useUserConversation } from "./query/use-user-conversation";
 import { useAppTitle } from "./use-app-title";
 
@@ -25,7 +24,6 @@ vi.mock("react-router", async () => {
 });
 
 describe("useAppTitle", () => {
-  const getConfigSpy = vi.spyOn(OptionService, "getConfig");
   const mockUseUserConversation = vi.mocked(useUserConversation);
   const mockUseParams = vi.mocked(useParams);
 
@@ -35,31 +33,13 @@ describe("useAppTitle", () => {
     mockUseParams.mockReturnValue({});
   });
 
-  it("should return 'OpenHands' if is OSS and NOT in /conversations", async () => {
-    // @ts-expect-error - only returning partial config for test
-    getConfigSpy.mockResolvedValue({
-      app_mode: "oss",
-    });
-
+  it("returns the OSS app title outside conversations", async () => {
     const { result } = renderAppTitleHook();
 
     await waitFor(() => expect(result.current).toBe("OpenHands"));
   });
 
-  it("should return 'OpenHands Cloud' if is SaaS and NOT in /conversations", async () => {
-    // @ts-expect-error - only returning partial config for test
-    getConfigSpy.mockResolvedValue({
-      app_mode: "saas",
-    });
-
-    const { result } = renderAppTitleHook();
-
-    await waitFor(() => expect(result.current).toBe("OpenHands Cloud"));
-  });
-
-  it("should return '{some title} | OpenHands' if is OSS and in /conversations", async () => {
-    // @ts-expect-error - only returning partial config for test
-    getConfigSpy.mockResolvedValue({ app_mode: "oss" });
+  it("returns the conversation title with the OSS app name", async () => {
     mockUseParams.mockReturnValue({ conversationId: "123" });
     mockUseUserConversation.mockReturnValue({
       // @ts-expect-error - only returning partial config for test
@@ -73,27 +53,7 @@ describe("useAppTitle", () => {
     );
   });
 
-  it("should return '{some title} | OpenHands Cloud' if is SaaS and in /conversations", async () => {
-    // @ts-expect-error - only returning partial config for test
-    getConfigSpy.mockResolvedValue({ app_mode: "saas" });
-    mockUseParams.mockReturnValue({ conversationId: "456" });
-    mockUseUserConversation.mockReturnValue({
-      // @ts-expect-error - only returning partial config for test
-      data: { title: "Another Conversation Title" },
-    });
-
-    const { result } = renderAppTitleHook();
-
-    await waitFor(() =>
-      expect(result.current).toBe(
-        "Another Conversation Title | OpenHands Cloud",
-      ),
-    );
-  });
-
-  it("should return app name while conversation is loading", async () => {
-    // @ts-expect-error - only returning partial config for test
-    getConfigSpy.mockResolvedValue({ app_mode: "oss" });
+  it("returns the app name while conversation data is loading", async () => {
     mockUseParams.mockReturnValue({ conversationId: "123" });
     // @ts-expect-error - only returning partial config for test
     mockUseUserConversation.mockReturnValue({ data: undefined });

@@ -7,6 +7,7 @@ describe("OptionService", () => {
 
     expect(config.app_mode).toBe("oss");
     expect(config.feature_flags.deployment_mode).toBe("self_hosted");
+    expect(config.feature_flags.hide_integrations_page).toBe(false);
     expect(config.updated_at).toBeTruthy();
   });
 

@@ -12,7 +12,6 @@ import { BrandButton } from "#/components/features/settings/brand-button";
 import { ConfirmationModal } from "#/components/shared/modals/confirmation-modal";
 import { I18nKey } from "#/i18n/declaration";
 import { createPermissionGuard } from "#/utils/org/permission-guard";
-import { useSelectedOrganizationId } from "#/context/use-selected-organization";
 import { LoadingSpinner } from "#/components/shared/loading-spinner";
 
 export const clientLoader = createPermissionGuard("manage_secrets");
@@ -20,7 +19,6 @@ export const clientLoader = createPermissionGuard("manage_secrets");
 function SecretsSettingsScreen() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const { organizationId } = useSelectedOrganizationId();
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -42,7 +40,6 @@ function SecretsSettingsScreen() {
   const [confirmationModalIsVisible, setConfirmationModalIsVisible] =
     React.useState(false);
 
-  // Handle scroll for infinite loading
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const target = e.currentTarget;
@@ -57,12 +54,11 @@ function SecretsSettingsScreen() {
   );
 
   const invalidateSecrets = () => {
-    // Invalidate both the new infinite query and the legacy query for compatibility
     queryClient.invalidateQueries({
       queryKey: ["secrets-search"],
     });
     queryClient.invalidateQueries({
-      queryKey: ["secrets", organizationId],
+      queryKey: ["secrets"],
     });
   };
 
@@ -145,7 +141,6 @@ function SecretsSettingsScreen() {
             </tbody>
           </table>
 
-          {/* Loading indicator for infinite scroll */}
           {isFetchingNextPage && (
             <div className="flex justify-center p-4">
               <LoadingSpinner size="small" />

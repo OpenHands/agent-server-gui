@@ -9,7 +9,6 @@ import { cn } from "#/utils/utils";
 import { BrandButton } from "../brand-button";
 import { useSearchSecrets } from "#/hooks/query/use-get-secrets";
 import { OptionalTag } from "../optional-tag";
-import { useSelectedOrganizationId } from "#/context/use-selected-organization";
 
 interface SecretFormProps {
   mode: "add" | "edit";
@@ -24,7 +23,6 @@ export function SecretForm({
 }: SecretFormProps) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const { organizationId } = useSelectedOrganizationId();
 
   const { data: secrets } = useSearchSecrets();
   const { mutate: createSecret } = useCreateSecret();
@@ -41,12 +39,11 @@ export function SecretForm({
     "";
 
   const invalidateSecrets = () => {
-    // Invalidate both the new infinite query and the legacy query for compatibility
     queryClient.invalidateQueries({
       queryKey: ["secrets-search"],
     });
     queryClient.invalidateQueries({
-      queryKey: ["secrets", organizationId],
+      queryKey: ["secrets"],
     });
   };
 
@@ -127,7 +124,7 @@ export function SecretForm({
         required
         defaultValue={mode === "edit" && selectedSecret ? selectedSecret : ""}
         placeholder={t("SECRETS$API_KEY_EXAMPLE")}
-        pattern="^\S*$"
+        pattern="^\\S*$"
       />
       {error && <p className="text-red-500 text-sm">{error}</p>}
 

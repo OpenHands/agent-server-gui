@@ -10,7 +10,6 @@ import "./tailwind.css";
 import "./index.css";
 import React from "react";
 import { Toaster } from "react-hot-toast";
-import { useInvitation } from "#/hooks/use-invitation";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -38,9 +37,5 @@ export const meta: MetaFunction = () => [
 ];
 
 export default function App() {
-  // Handle invitation token cleanup when invitation flow completes
-  // This runs on all pages to catch redirects from auth callback
-  useInvitation();
-
   return <Outlet />;
 }

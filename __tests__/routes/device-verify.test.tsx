@@ -5,20 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoutesStub } from "react-router";
 import DeviceVerify from "#/routes/device-verify";
 
-const { useIsAuthedMock, mockUseAppMode } = vi.hoisted(() => ({
+const { useIsAuthedMock } = vi.hoisted(() => ({
   useIsAuthedMock: vi.fn(() => ({
     data: false as boolean | undefined,
     isLoading: false,
-  })),
-  mockUseAppMode: vi.fn(() => ({
-    isOss: false,
-    isSaas: true,
-    isCloud: true,
-    isSelfHosted: false,
-    isEnterpriseSelfHosted: false,
-    isEnterpriseCloud: true,
-    appMode: "saas" as string | undefined,
-    deploymentMode: "cloud" as string | undefined,
   })),
 }));
 
@@ -30,10 +20,6 @@ vi.mock("posthog-js/react", () => ({
   usePostHog: () => ({
     capture: vi.fn(),
   }),
-}));
-
-vi.mock("#/hooks/use-app-mode", () => ({
-  useAppMode: () => mockUseAppMode(),
 }));
 
 const RouterStub = createRoutesStub([
@@ -75,17 +61,6 @@ describe("DeviceVerify", () => {
         }),
       ),
     );
-    // Reset useAppMode to SaaS Cloud (CTA enabled) by default
-    mockUseAppMode.mockReturnValue({
-      isOss: false,
-      isSaas: true,
-      isCloud: true,
-      isSelfHosted: false,
-      isEnterpriseSelfHosted: false,
-      isEnterpriseCloud: true,
-      appMode: "saas",
-      deploymentMode: "cloud",
-    });
   });
 
   afterEach(() => {
@@ -253,73 +228,7 @@ describe("DeviceVerify", () => {
       });
     });
 
-    it("should include the LoginCTA component when in SaaS Cloud mode", async () => {
-      mockUseAppMode.mockReturnValue({
-        isOss: false,
-        isSaas: true,
-        isCloud: true,
-        isSelfHosted: false,
-        isEnterpriseSelfHosted: false,
-        isEnterpriseCloud: true,
-        appMode: "saas",
-        deploymentMode: "cloud",
-      });
-      useIsAuthedMock.mockReturnValue({
-        data: true,
-        isLoading: false,
-      });
-
-      render(
-        <RouterStub initialEntries={["/device-verify?user_code=ABC-123"]} />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTestId("login-cta")).toBeInTheDocument();
-      });
-    });
-
-    it("should not include the LoginCTA component when in OSS mode", async () => {
-      mockUseAppMode.mockReturnValue({
-        isOss: true,
-        isSaas: false,
-        isCloud: false,
-        isSelfHosted: false,
-        isEnterpriseSelfHosted: false,
-        isEnterpriseCloud: false,
-        appMode: "oss",
-        deploymentMode: undefined,
-      });
-      useIsAuthedMock.mockReturnValue({
-        data: true,
-        isLoading: false,
-      });
-
-      render(
-        <RouterStub initialEntries={["/device-verify?user_code=ABC-123"]} />,
-        {
-          wrapper: createWrapper(),
-        },
-      );
-
-      await waitFor(() => {
-        expect(screen.queryByTestId("login-cta")).not.toBeInTheDocument();
-      });
-    });
-
-    it("should not include the LoginCTA and be center-aligned when in SaaS Self-hosted mode", async () => {
-      mockUseAppMode.mockReturnValue({
-        isOss: false,
-        isSaas: true,
-        isCloud: false,
-        isSelfHosted: true,
-        isEnterpriseSelfHosted: true,
-        isEnterpriseCloud: false,
-        appMode: "saas",
-        deploymentMode: "self_hosted",
-      });
+    it("keeps the device verification view OSS-only without login CTA chrome", async () => {
       useIsAuthedMock.mockReturnValue({
         data: true,
         isLoading: false,
@@ -338,17 +247,9 @@ describe("DeviceVerify", () => {
         ).toBeInTheDocument();
       });
 
-      // CTA should not be rendered
       expect(screen.queryByTestId("login-cta")).not.toBeInTheDocument();
-
-      // Container should use max-w-md (centered layout) instead of max-w-4xl
-      const container = document.querySelector(".max-w-md");
-      expect(container).toBeInTheDocument();
+      expect(document.querySelector(".max-w-md")).toBeInTheDocument();
       expect(document.querySelector(".max-w-4xl")).not.toBeInTheDocument();
-
-      // Authorization card should have mx-auto for centering
-      const authCard = container?.querySelector(".mx-auto");
-      expect(authCard).toBeInTheDocument();
     });
 
     it("should call window.close when cancel button is clicked", async () => {

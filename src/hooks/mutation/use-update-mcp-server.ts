@@ -8,7 +8,6 @@ import {
   MCPStdioServer,
 } from "#/types/settings";
 import { parseMcpConfig, toSdkMcpConfig } from "#/utils/mcp-config";
-import { useSelectedOrganizationId } from "#/context/use-selected-organization";
 
 type MCPServerType = "sse" | "stdio" | "shttp";
 
@@ -26,7 +25,6 @@ interface MCPServerConfig {
 export function useUpdateMcpServer() {
   const queryClient = useQueryClient();
   const { data: settings } = useSettings();
-  const { organizationId } = useSelectedOrganizationId();
 
   return useMutation({
     mutationFn: async ({
@@ -77,7 +75,7 @@ export function useUpdateMcpServer() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["settings", "personal", organizationId],
+        queryKey: ["settings", "personal"],
       });
     },
   });
