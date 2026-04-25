@@ -16,6 +16,7 @@
 - Verification command: `npm run typecheck && npm run build`.
 - `@openhands/typescript-client` is currently consumed via a vendored local file dependency at `vendor/openhands-typescript-client` because anonymous/public GitHub Packages install was not usable in this environment. The vendored package is pinned to `v0.1.2`, keeps built `dist/` output committed, and exposes extra subpath exports for `client/http-client`, `events/remote-events-list`, and `workspace/remote-workspace`.
 - Shared TypeScript-client adapters live in `src/api/typescript-client.ts`; prefer those helpers for agent-server-backed REST/workspace/event/VS Code calls before falling back to `open-hands-axios`.
+- In this repo state, `src/api/typescript-client.ts` imports the vendored TypeScript client directly from `vendor/openhands-typescript-client/src/*` rather than the package subpath exports, because the file dependency does not currently ship the expected built `dist/` subpath files in this environment.
 - Root `tsconfig.json` excludes `vendor/openhands-typescript-client` so the frontend typecheck only covers the app code.
 
 - `npm run dev:mock` needs MSW handlers for the direct agent-server routes used by the adapted frontend, not the original OpenHands mock paths. Key routes that must stay covered are:
@@ -23,6 +24,7 @@
   - settings schemas: `/api/settings/agent-schema`, `/api/settings/conversation-schema`
   - conversation browsing/loading: `/api/conversations/search`, `/api/conversations?ids=...`, `/api/conversations/:id`, `/api/conversations/:id/events/*`
   - runtime git panels: `/api/git/changes`, `/api/git/diff`
+- Frontend compatibility guard: `OptionService.getConfig()` now verifies `/api/settings/agent-schema` and `/api/settings/conversation-schema` up front. A 404 from either endpoint is treated as an incompatible agent-server version, `useConfig` stops retrying that case, and `src/root.tsx` renders a blocking unsupported-version notice on every route.
 - Useful regression tests for mock mode live in `__tests__/api/option-service.test.ts`, `__tests__/api/mock-conversation-handlers.test.ts`, and `__tests__/api/mock-settings-handlers.test.ts`.
 - Browser-verified mock-mode tour artifact was generated at `artifacts/frontend-tour.gif`.
 - Live `agent_server` compatibility quirks discovered during browser verification:
