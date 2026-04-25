@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoutesStub } from "react-router";
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
+import { MINIMUM_SUPPORTED_AGENT_SERVER_VERSION } from "#/api/agent-server-compatibility";
 import App from "#/root";
 import { server } from "#/mocks/node";
 
@@ -35,16 +36,10 @@ const renderApp = (initialEntries: string[] = ["/"]) =>
   });
 
 describe("App root compatibility guard", () => {
-  it("blocks the app on any page when the connected agent server is incompatible", async () => {
+  it("blocks the app on any page when the connected agent server version is too old", async () => {
     server.use(
       http.get("/server_info", () =>
         HttpResponse.json({ uptime: 0, idle_time: 0, version: "1.16.1" }),
-      ),
-      http.get("/api/settings/agent-schema", () =>
-        HttpResponse.json({ error: "missing" }, { status: 404 }),
-      ),
-      http.get("/api/settings/conversation-schema", () =>
-        HttpResponse.json({ error: "missing" }, { status: 404 }),
       ),
     );
 
@@ -60,6 +55,11 @@ describe("App root compatibility guard", () => {
       screen.getByText(/unsupported agent server version/i),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/1\.16\.1/)).toHaveLength(2);
+    expect(
+      screen.getByText(
+        new RegExp(`${MINIMUM_SUPPORTED_AGENT_SERVER_VERSION} or newer`),
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("app-outlet")).not.toBeInTheDocument();
   });
 

@@ -1,32 +1,8 @@
-import {
-  createServerClient,
-  createSettingsClient,
-} from "#/api/typescript-client";
+import { createServerClient } from "#/api/typescript-client";
 
-const REQUIRED_SETTINGS_SCHEMA_ENDPOINTS = [
-  "/api/settings/agent-schema",
-  "/api/settings/conversation-schema",
-] as const;
+export const MINIMUM_SUPPORTED_AGENT_SERVER_VERSION = "1.17.0";
 
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (typeof error === "object" && error !== null && "status" in error) {
-    const status = (error as { status?: unknown }).status;
-    if (typeof status === "number") {
-      return status;
-    }
-  }
-
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "cause" in error &&
-    error.cause !== undefined
-  ) {
-    return getErrorStatus(error.cause);
-  }
-
-  return undefined;
-};
+const SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/;
 
 const getServerVersion = (serverInfo: unknown): string | null => {
   if (
@@ -42,12 +18,48 @@ const getServerVersion = (serverInfo: unknown): string | null => {
   return null;
 };
 
+const parseSemver = (
+  version: string | null,
+): [number, number, number] | null => {
+  if (!version) {
+    return null;
+  }
+
+  const match = version.match(SEMVER_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  return match.slice(1, 4).map(Number) as [number, number, number];
+};
+
+const isSupportedAgentServerVersion = (serverVersion: string | null) => {
+  const parsedVersion = parseSemver(serverVersion);
+  const minimumVersion = parseSemver(MINIMUM_SUPPORTED_AGENT_SERVER_VERSION);
+
+  if (!parsedVersion || !minimumVersion) {
+    return false;
+  }
+
+  for (let index = 0; index < minimumVersion.length; index += 1) {
+    if (parsedVersion[index] > minimumVersion[index]) {
+      return true;
+    }
+
+    if (parsedVersion[index] < minimumVersion[index]) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const buildCompatibilityMessage = (serverVersion: string | null) => {
   const versionMessage = serverVersion
     ? `Connected agent server version ${serverVersion} is not compatible with this frontend.`
-    : "The connected agent server is not compatible with this frontend.";
+    : "The connected agent server version could not be determined.";
 
-  return `${versionMessage} This frontend requires the settings schema endpoints ${REQUIRED_SETTINGS_SCHEMA_ENDPOINTS.join(" and ")}. Upgrade the agent server and reload the page.`;
+  return `${versionMessage} This frontend requires agent server version ${MINIMUM_SUPPORTED_AGENT_SERVER_VERSION} or newer. Upgrade the agent server and reload the page.`;
 };
 
 export class AgentServerIncompatibilityError extends Error {
@@ -70,35 +82,12 @@ export const isAgentServerIncompatibilityError = (
     error.name === "AgentServerIncompatibilityError");
 
 export async function ensureCompatibleAgentServer() {
-  const serverClient = createServerClient();
-  const settingsClient = createSettingsClient();
+  const serverInfo = await createServerClient().getServerInfo();
+  const serverVersion = getServerVersion(serverInfo);
 
-  const [serverInfoResult, agentSchemaResult, conversationSchemaResult] =
-    await Promise.allSettled([
-      serverClient.getServerInfo(),
-      settingsClient.getAgentSchema(),
-      settingsClient.getConversationSchema(),
-    ]);
-
-  if (serverInfoResult.status === "rejected") {
-    throw serverInfoResult.reason;
+  if (!isSupportedAgentServerVersion(serverVersion)) {
+    throw new AgentServerIncompatibilityError(serverVersion);
   }
 
-  const schemaErrors = [agentSchemaResult, conversationSchemaResult]
-    .filter(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    )
-    .map((result) => result.reason);
-
-  if (schemaErrors.some((error) => getErrorStatus(error) === 404)) {
-    throw new AgentServerIncompatibilityError(
-      getServerVersion(serverInfoResult.value),
-    );
-  }
-
-  if (schemaErrors.length > 0) {
-    throw schemaErrors[0];
-  }
-
-  return serverInfoResult.value;
+  return serverInfo;
 }

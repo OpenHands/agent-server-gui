@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
-import { AgentServerIncompatibilityError } from "#/api/agent-server-compatibility";
+import {
+  AgentServerIncompatibilityError,
+  MINIMUM_SUPPORTED_AGENT_SERVER_VERSION,
+} from "#/api/agent-server-compatibility";
 import OptionService from "#/api/option-service/option-service.api";
 import { server } from "#/mocks/node";
 
@@ -13,10 +16,28 @@ describe("OptionService", () => {
     expect(config.updated_at).toBeTruthy();
   });
 
-  it("throws a compatibility error when required schema endpoints are missing", async () => {
+  it("throws a compatibility error when the agent server version is below the supported minimum", async () => {
     server.use(
       http.get("/server_info", () =>
         HttpResponse.json({ uptime: 0, idle_time: 0, version: "1.16.1" }),
+      ),
+    );
+
+    await expect(OptionService.getConfig()).rejects.toMatchObject({
+      name: AgentServerIncompatibilityError.name,
+      serverVersion: "1.16.1",
+      message: expect.stringContaining(MINIMUM_SUPPORTED_AGENT_SERVER_VERSION),
+    });
+  });
+
+  it("uses only server version metadata for compatibility checks", async () => {
+    server.use(
+      http.get("/server_info", () =>
+        HttpResponse.json({
+          uptime: 0,
+          idle_time: 0,
+          version: MINIMUM_SUPPORTED_AGENT_SERVER_VERSION,
+        }),
       ),
       http.get("/api/settings/agent-schema", () =>
         HttpResponse.json({ error: "missing" }, { status: 404 }),
@@ -26,12 +47,11 @@ describe("OptionService", () => {
       ),
     );
 
-    await expect(OptionService.getConfig()).rejects.toBeInstanceOf(
-      AgentServerIncompatibilityError,
-    );
-    await expect(OptionService.getConfig()).rejects.toMatchObject({
-      serverVersion: "1.16.1",
-      message: expect.stringContaining("1.16.1"),
+    await expect(OptionService.getConfig()).resolves.toMatchObject({
+      app_mode: "oss",
+      feature_flags: expect.objectContaining({
+        deployment_mode: "self_hosted",
+      }),
     });
   });
 
