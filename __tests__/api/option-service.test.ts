@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import {
   AgentServerIncompatibilityError,
+  AgentServerUnavailableError,
   MINIMUM_SUPPORTED_AGENT_SERVER_VERSION,
 } from "#/api/agent-server-compatibility";
 import OptionService from "#/api/option-service/option-service.api";
@@ -27,6 +28,16 @@ describe("OptionService", () => {
       name: AgentServerIncompatibilityError.name,
       serverVersion: "1.16.1",
       message: expect.stringContaining(MINIMUM_SUPPORTED_AGENT_SERVER_VERSION),
+    });
+  });
+
+  it("throws an unavailable error when the agent server cannot be reached", async () => {
+    server.use(http.get("/server_info", () => HttpResponse.error()));
+
+    await expect(OptionService.getConfig()).rejects.toMatchObject({
+      name: AgentServerUnavailableError.name,
+      message: expect.stringContaining("Agent server not found"),
+      details: expect.stringContaining("Request failed"),
     });
   });
 

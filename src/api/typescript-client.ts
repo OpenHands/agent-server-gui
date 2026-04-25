@@ -22,6 +22,7 @@ interface TypeScriptClientOverrides {
   sessionApiKey?: string | null;
   workingDir?: string;
   conversationUrl?: string | null;
+  timeout?: number;
 }
 
 interface ResolvedClientOptions {
@@ -56,7 +57,11 @@ export function createServerClient(
   overrides?: TypeScriptClientOverrides,
 ): ServerClient {
   const { host, apiKey } = resolveClientOptions(overrides);
-  return new ServerClient({ host, ...(apiKey ? { apiKey } : {}) });
+  return new ServerClient({
+    host,
+    ...(apiKey ? { apiKey } : {}),
+    ...(overrides?.timeout ? { timeout: overrides.timeout } : {}),
+  });
 }
 
 export function createLlmMetadataClient(

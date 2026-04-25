@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { isAgentServerIncompatibilityError } from "#/api/agent-server-compatibility";
+import {
+  isAgentServerIncompatibilityError,
+  isAgentServerUnavailableError,
+} from "#/api/agent-server-compatibility";
 import OptionService from "#/api/option-service/option-service.api";
 import { useIsOnIntermediatePage } from "#/hooks/use-is-on-intermediate-page";
 import { QUERY_KEYS, CONFIG_CACHE_OPTIONS } from "./query-keys";
@@ -15,7 +18,10 @@ export const useConfig = (options?: UseConfigOptions) => {
     queryKey: QUERY_KEYS.WEB_CLIENT_CONFIG,
     queryFn: OptionService.getConfig,
     retry: (failureCount, error) =>
-      !isAgentServerIncompatibilityError(error) && failureCount < 3,
+      !isAgentServerIncompatibilityError(error) &&
+      !isAgentServerUnavailableError(error) &&
+      failureCount < 3,
+    meta: { disableToast: true },
     ...CONFIG_CACHE_OPTIONS,
     enabled: options?.enabled ?? !isOnIntermediatePage,
   });

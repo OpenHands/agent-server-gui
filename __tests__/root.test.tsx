@@ -63,6 +63,31 @@ describe("App root compatibility guard", () => {
     expect(screen.queryByTestId("app-outlet")).not.toBeInTheDocument();
   });
 
+  it("fails fast with an agent server not found warning when the backend is unreachable", async () => {
+    let serverInfoRequests = 0;
+
+    server.use(
+      http.get("/server_info", () => {
+        serverInfoRequests += 1;
+        return HttpResponse.error();
+      }),
+    );
+
+    renderApp(["/"]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("agent-server-unavailable-warning"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole("heading", { name: /agent server not found/i }),
+    ).toBeInTheDocument();
+    expect(serverInfoRequests).toBe(1);
+    expect(screen.queryByTestId("app-outlet")).not.toBeInTheDocument();
+  });
+
   it("renders the routed page when the agent server is compatible", async () => {
     renderApp(["/"]);
 
