@@ -1,4 +1,8 @@
-import { createLlmMetadataClient, createServerClient } from "../typescript-client";
+import {
+  createLlmMetadataClient,
+  createServerClient,
+} from "#/api/typescript-client";
+import { getCloudDevelopmentWarning } from "#/api/agent-server-config";
 import { ModelsResponse, WebClientConfig } from "./option.types";
 
 class OptionService {
@@ -32,6 +36,8 @@ class OptionService {
   static async getConfig(): Promise<WebClientConfig> {
     await createServerClient().getServerInfo();
 
+    const cloudDevelopmentWarning = getCloudDevelopmentWarning();
+
     return {
       app_mode: "oss",
       posthog_client_key: null,
@@ -51,8 +57,10 @@ class OptionService {
       auth_url: null,
       recaptcha_site_key: null,
       faulty_models: [],
-      error_message: null,
-      updated_at: new Date().toISOString(),
+      error_message: cloudDevelopmentWarning,
+      updated_at: cloudDevelopmentWarning
+        ? "cloud-runtime-warning-v1"
+        : new Date().toISOString(),
       github_app_slug: null,
     };
   }

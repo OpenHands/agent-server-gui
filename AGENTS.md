@@ -42,6 +42,8 @@
     - `browser_tool_set`
     Using `TerminalTool` / `FileEditorTool` / `TaskTrackerTool` / `BrowserToolSet` caused live `/api/conversations/{id}/events` runs to fail with `ToolDefinition '<name>' is not registered`.
   - For local verification in this repo, setting `VITE_WORKING_DIR=/workspace/project/agent-server-gui` avoids initial Changes-tab 500s from pointing conversations at the non-repo parent `/workspace/project`.
+  - OpenHands Cloud sandbox development note: do **not** start a second `agent-server` in the same sandbox. Current agent-server releases use a shared `openhands` tmux socket and default `workspace/conversations`, so a second server can kill the cloud session's tmux state or attach to the same persisted conversations. The frontend now surfaces a warning banner on `*.runtime.all-hands.dev` / `work-*` runtime hosts, and the README/.env.sample document the safe flow (reuse the existing sandbox backend or use `npm run dev:mock`).
+
   - A successful end-to-end live run in this environment required a real LLM config (`LLM_MODEL` + `LLM_API_KEY`). The default `litellm_proxy/...` model with no `llm_api_key` failed at runtime with a `litellm.AuthenticationError`.
 
 

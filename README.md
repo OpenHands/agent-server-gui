@@ -9,6 +9,22 @@
 
 If you only read one section of this README, read this one. Most users will want to clone this repo, point it at a real `openhands-agent-server`, and start using the UI immediately.
 
+### Special case: developing inside OpenHands Cloud
+
+If you are editing this repo from an OpenHands Cloud sandbox, **do not start a second `agent-server` process inside the same sandbox**.
+
+Current `agent-server` releases share the default `openhands` tmux socket and `workspace/conversations` persistence directory. Starting another server in the same sandbox can break the OpenHands conversation that is powering your cloud session (for example with errors like `no server running on /tmp/tmux-*/openhands`).
+
+Use one of these workflows instead:
+
+1. **Reuse the sandbox's existing backend** (recommended): just run `npm install` and `npm run dev`. The frontend's default localhost/proxy setup is compatible with the agent-server that OpenHands Cloud already started for the current sandbox.
+2. **Use a fully isolated frontend-only flow**: run `npm run dev:mock`.
+3. **Need a separate live backend?** Start it in a different machine/container/sandbox, not alongside the OpenHands Cloud backend in the same runtime.
+
+For the first workflow, also set `VITE_WORKING_DIR=/workspace/project/agent-server-gui` (or your repo root) so new conversations and Git panels point at this checkout instead of the parent workspace.
+
+If you are **not** inside an OpenHands Cloud sandbox, follow the standard local setup below.
+
 ### Prerequisites
 
 - Node.js 22.12.x or later
