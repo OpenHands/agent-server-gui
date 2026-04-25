@@ -5,6 +5,7 @@ import {
   SkillsClient,
   VSCodeClient,
 } from "../../vendor/openhands-typescript-client/src/clients";
+export type { ServerInfo } from "../../vendor/openhands-typescript-client/src/types/base";
 import { HttpClient } from "../../vendor/openhands-typescript-client/src/client/http-client";
 import { RemoteEventsList } from "../../vendor/openhands-typescript-client/src/events/remote-events-list";
 import { RemoteWorkspace } from "../../vendor/openhands-typescript-client/src/workspace/remote-workspace";

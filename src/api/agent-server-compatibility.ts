@@ -1,22 +1,10 @@
-import { createServerClient } from "#/api/typescript-client";
+import { createServerClient, type ServerInfo } from "#/api/typescript-client";
 
 export const MINIMUM_SUPPORTED_AGENT_SERVER_VERSION = "1.17.0";
 
 const SEMVER_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/;
 
-const getServerVersion = (serverInfo: unknown): string | null => {
-  if (
-    typeof serverInfo === "object" &&
-    serverInfo !== null &&
-    "version" in serverInfo &&
-    typeof serverInfo.version === "string" &&
-    serverInfo.version.length > 0
-  ) {
-    return serverInfo.version;
-  }
-
-  return null;
-};
+const getServerVersion = (serverInfo: ServerInfo): string => serverInfo.version;
 
 const parseSemver = (
   version: string | null,
