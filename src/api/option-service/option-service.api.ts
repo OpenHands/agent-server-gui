@@ -44,7 +44,7 @@ class OptionService {
         enable_linear: false,
         hide_users_page: true,
         hide_billing_page: true,
-        hide_integrations_page: true,
+        hide_integrations_page: false,
         deployment_mode: "self_hosted",
       },
       providers_configured: [],

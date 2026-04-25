@@ -17,7 +17,6 @@ import {
   isAgentServerUnavailableError,
 } from "#/api/agent-server-compatibility";
 import { useConfig } from "#/hooks/query/use-config";
-import { useInvitation } from "#/hooks/use-invitation";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -114,10 +113,6 @@ export const meta: MetaFunction = () => [
 
 export default function App() {
   const config = useConfig({ enabled: true });
-
-  // Handle invitation token cleanup when invitation flow completes
-  // This runs on all pages to catch redirects from auth callback
-  useInvitation();
 
   if (isAgentServerUnavailableError(config.error)) {
     return <MissingAgentServerNotice error={config.error} />;

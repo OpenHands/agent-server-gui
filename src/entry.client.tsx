@@ -12,12 +12,10 @@ import "./i18n";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./query-client-config";
 import { PostHogWrapper } from "./components/providers/posthog-wrapper";
+import { shouldStartMockWorker } from "./mocks/should-start-mock-worker";
 
 async function prepareApp() {
-  if (
-    process.env.NODE_ENV === "development" &&
-    import.meta.env.VITE_MOCK_API === "true"
-  ) {
+  if (shouldStartMockWorker()) {
     const { worker } = await import("./mocks/browser");
 
     await worker.start({

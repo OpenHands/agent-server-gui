@@ -2,10 +2,8 @@ import React, { useState } from "react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useIsAuthed } from "#/hooks/query/use-is-authed";
-import { LoginCTA } from "#/components/features/auth/login-cta";
 import { I18nKey } from "#/i18n/declaration";
 import { H1 } from "#/ui/typography";
-import { useAppMode } from "#/hooks/use-app-mode";
 
 export default function DeviceVerify() {
   const { t } = useTranslation();
@@ -16,27 +14,23 @@ export default function DeviceVerify() {
     messageKey: I18nKey;
   } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isEnterpriseCloud } = useAppMode();
 
-  // Get user_code from URL parameters
   const userCode = searchParams.get("user_code");
 
   const processDeviceVerification = async (code: string) => {
     try {
       setIsProcessing(true);
 
-      // Call the backend API endpoint to process device verification
       const response = await fetch("/oauth/device/verify-authenticated", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: `user_code=${encodeURIComponent(code)}`,
-        credentials: "include", // Include cookies for authentication
+        credentials: "include",
       });
 
       if (response.ok) {
-        // Show success message
         setVerificationResult({
           success: true,
           messageKey: I18nKey.DEVICE$SUCCESS_MESSAGE,
@@ -47,7 +41,7 @@ export default function DeviceVerify() {
           messageKey: I18nKey.DEVICE$ERROR_FAILED,
         });
       }
-    } catch (error) {
+    } catch {
       setVerificationResult({
         success: false,
         messageKey: I18nKey.DEVICE$ERROR_OCCURRED,
@@ -56,8 +50,6 @@ export default function DeviceVerify() {
       setIsProcessing(false);
     }
   };
-
-  // Remove automatic verification - require explicit user consent
 
   const handleManualSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,7 +60,6 @@ export default function DeviceVerify() {
     }
   };
 
-  // Show verification result if we have one
   if (verificationResult) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -130,7 +121,6 @@ export default function DeviceVerify() {
     );
   }
 
-  // Show processing state
   if (isProcessing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -146,17 +136,11 @@ export default function DeviceVerify() {
     );
   }
 
-  // Show device authorization confirmation if user is authenticated and code is provided
   if (isAuthed && userCode) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div
-          className={`flex flex-col lg:flex-row items-center lg:items-stretch gap-6 w-full ${isEnterpriseCloud ? "max-w-4xl" : "max-w-md"}`}
-        >
-          {/* Device Authorization Card */}
-          <div
-            className={`flex-1 min-w-0 max-w-md w-full mx-auto p-6 bg-card rounded-2xl shadow-lg border border-[#242424] ${isEnterpriseCloud ? "lg:mx-0 lg:self-stretch" : ""}`}
-          >
+        <div className="flex flex-col items-center gap-6 w-full max-w-md">
+          <div className="flex-1 min-w-0 max-w-md w-full mx-auto p-6 bg-card rounded-2xl shadow-lg border border-[#242424]">
             <H1 className="text-2xl mb-4 text-center">
               {t(I18nKey.DEVICE$AUTHORIZATION_REQUEST)}
             </H1>
@@ -196,17 +180,11 @@ export default function DeviceVerify() {
               </button>
             </div>
           </div>
-
-          {/* Login CTA */}
-          {isEnterpriseCloud && (
-            <LoginCTA source="device_verify" className="lg:self-stretch" />
-          )}
         </div>
       </div>
     );
   }
 
-  // Show manual code entry form if no code in URL but user is authenticated
   if (isAuthed && !userCode) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -246,7 +224,6 @@ export default function DeviceVerify() {
     );
   }
 
-  // Show loading state while checking authentication
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -260,7 +237,6 @@ export default function DeviceVerify() {
     );
   }
 
-  // Show authentication required message (this will trigger the auth modal via root layout)
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md w-full mx-auto p-6 bg-card rounded-lg shadow-lg text-center">

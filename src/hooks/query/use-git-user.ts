@@ -4,14 +4,10 @@ import { usePostHog } from "posthog-js/react";
 import { useConfig } from "./use-config";
 import UserService from "#/api/user-service/user-service.api";
 import { useShouldShowUserFeatures } from "#/hooks/use-should-show-user-features";
-import { useLogout } from "../mutation/use-logout";
 
 export const useGitUser = () => {
   const posthog = usePostHog();
   const { data: config } = useConfig();
-  const logout = useLogout();
-
-  // Use the shared hook to determine if we should fetch user data
   const shouldFetchUser = useShouldShowUserFeatures();
 
   const user = useQuery({
@@ -19,8 +15,8 @@ export const useGitUser = () => {
     queryFn: UserService.getUser,
     enabled: shouldFetchUser,
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 15, // 15 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 15,
   });
 
   React.useEffect(() => {
@@ -33,16 +29,7 @@ export const useGitUser = () => {
         mode: config?.app_mode || "oss",
       });
     }
-  }, [user.data]);
-
-  // In saas mode, a 401 means that the integration tokens need to be
-  // refreshed. Since this happens at login, we log out.
-  // In oss mode, skip auto-logout since there's no token refresh mechanism
-  React.useEffect(() => {
-    if (user?.error?.response?.status === 401 && config?.app_mode === "saas") {
-      logout.mutate();
-    }
-  }, [user.status, config?.app_mode]);
+  }, [config?.app_mode, posthog, user.data]);
 
   return user;
 };

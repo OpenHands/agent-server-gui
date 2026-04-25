@@ -11,7 +11,6 @@ import { I18nKey } from "#/i18n/declaration";
 import { DEFAULT_SETTINGS } from "#/services/settings";
 import { SettingsScope } from "#/types/settings";
 import { createPermissionGuard } from "#/utils/org/permission-guard";
-import { requireOrgDefaultsRedirect } from "#/utils/org/saas-redirect-to-org-defaults-guard";
 
 const VERIFICATION_SCHEMA_EXCLUDE_KEYS = new Set([
   "confirmation_mode",
@@ -189,15 +188,6 @@ export function VerificationSettingsScreen({
   );
 }
 
-const orgDefaultsRedirectGuard = requireOrgDefaultsRedirect(
-  "/settings/org-defaults/verification",
-);
-const verificationPermissionGuard = createPermissionGuard("view_llm_settings");
-
-export const clientLoader = async (args: { request: Request }) => {
-  const blocked = await orgDefaultsRedirectGuard(args);
-  if (blocked) return blocked;
-  return verificationPermissionGuard(args);
-};
+export const clientLoader = createPermissionGuard("view_llm_settings");
 
 export default VerificationSettingsScreen;
