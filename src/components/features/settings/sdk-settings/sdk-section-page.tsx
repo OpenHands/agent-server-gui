@@ -4,13 +4,10 @@ import { useTranslation } from "react-i18next";
 import { BrandButton } from "#/components/features/settings/brand-button";
 import { LlmSettingsInputsSkeleton } from "#/components/features/settings/llm-settings/llm-settings-inputs-skeleton";
 import { useSaveSettings } from "#/hooks/mutation/use-save-settings";
-import { usePermission } from "#/hooks/organizations/use-permissions";
 import {
   useAgentSettingsSchema,
   useConversationSettingsSchema,
 } from "#/hooks/query/use-agent-settings-schema";
-import { useConfig } from "#/hooks/query/use-config";
-import { useMe } from "#/hooks/query/use-me";
 import { useSettings } from "#/hooks/query/use-settings";
 import { I18nKey } from "#/i18n/declaration";
 import { Typography } from "#/ui/typography";
@@ -166,13 +163,7 @@ export function SdkSectionPage({
       : agentSchemaQuery;
   const schema = activeSchemaQuery.data;
   const isSchemaLoading = activeSchemaQuery.isLoading;
-  const { data: config } = useConfig();
-  const { data: me } = useMe();
-  const { hasPermission } = usePermission(me?.role ?? "member");
-
-  const isOssMode = config?.app_mode === "oss";
-  const isReadOnly =
-    scope === "org" && !isOssMode ? !hasPermission("edit_llm_settings") : false;
+  const isReadOnly = false;
 
   const [view, setView] = React.useState<SettingsView>("basic");
   const [values, setValues] = React.useState<SettingsFormValues>({});

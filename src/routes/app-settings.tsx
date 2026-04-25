@@ -25,11 +25,6 @@ import {
   SandboxGroupingStrategyOptions,
 } from "#/types/settings";
 import { ENABLE_SANDBOX_GROUPING } from "#/utils/feature-flags";
-import { createPermissionGuard } from "#/utils/org/permission-guard";
-
-export const clientLoader = createPermissionGuard(
-  "manage_application_settings",
-);
 
 function AppSettingsScreen() {
   const posthog = usePostHog();

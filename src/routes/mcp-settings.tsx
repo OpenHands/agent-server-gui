@@ -23,10 +23,8 @@ import {
 } from "#/utils/custom-toast-handlers";
 import { parseMcpConfig } from "#/utils/mcp-config";
 import { retrieveAxiosErrorMessage } from "#/utils/retrieve-axios-error-message";
-import { createPermissionGuard } from "#/utils/org/permission-guard";
 import { Typography } from "#/ui/typography";
 
-export const clientLoader = createPermissionGuard("manage_mcp");
 export const handle = { hideTitle: true };
 
 type MCPServerType = "sse" | "stdio" | "shttp";

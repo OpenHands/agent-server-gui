@@ -36,13 +36,20 @@ export function UserContextMenu({ onClose }: UserContextMenuProps) {
         </h3>
 
         <div className="flex flex-col items-start gap-0 w-full">
-          {navItems.map((renderedItem) => (
-            <ContextMenuNavLink
-              key={renderedItem.item.to}
-              item={renderedItem.item}
-              onClick={onClose}
-            />
-          ))}
+          {navItems
+            .filter(
+              (
+                renderedItem,
+              ): renderedItem is Extract<typeof renderedItem, { type: "item" }> =>
+                renderedItem.type === "item",
+            )
+            .map((renderedItem) => (
+              <ContextMenuNavLink
+                key={renderedItem.item.to}
+                item={renderedItem.item}
+                onClick={onClose}
+              />
+            ))}
 
           <SettingsNavDivider className="my-1.5" />
 

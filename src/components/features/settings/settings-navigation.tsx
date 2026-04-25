@@ -4,9 +4,7 @@ import { Typography } from "#/ui/typography";
 import { I18nKey } from "#/i18n/declaration";
 import SettingsIcon from "#/icons/settings-gear.svg?react";
 import CloseIcon from "#/icons/close.svg?react";
-import { OrgSelector } from "../org/org-selector";
 import { SettingsNavRenderedItem } from "#/hooks/use-settings-nav-items";
-import { useShouldHideOrgSelector } from "#/hooks/use-should-hide-org-selector";
 import { SettingsNavHeader } from "./settings-nav-header";
 import { SettingsNavDivider } from "./settings-nav-divider";
 import { SettingsNavLink } from "./settings-nav-link";
@@ -23,7 +21,6 @@ export function SettingsNavigation({
   navigationItems,
 }: SettingsNavigationProps) {
   const { t } = useTranslation();
-  const shouldHideSelector = useShouldHideOrgSelector();
 
   return (
     <>
@@ -61,8 +58,6 @@ export function SettingsNavigation({
             <CloseIcon width={32} height={32} />
           </button>
         </div>
-
-        {!shouldHideSelector && <OrgSelector />}
 
         <div className="flex flex-col gap-2">
           {navigationItems.map((renderedItem, index) => {

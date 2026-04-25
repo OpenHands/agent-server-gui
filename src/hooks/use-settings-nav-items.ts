@@ -4,8 +4,12 @@ import {
 } from "#/constants/settings-nav";
 import { isSettingsPageHidden } from "#/utils/settings-utils";
 import { useConfig } from "./query/use-config";
+import { I18nKey } from "#/i18n/declaration";
 
-export type SettingsNavRenderedItem = { type: "item"; item: SettingsNavItem };
+export type SettingsNavRenderedItem =
+  | { type: "item"; item: SettingsNavItem }
+  | { type: "header"; text: I18nKey }
+  | { type: "divider" };
 
 export function useSettingsNavItems(): SettingsNavRenderedItem[] {
   const { data: config } = useConfig();
