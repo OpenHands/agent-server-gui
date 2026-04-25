@@ -1,7 +1,5 @@
-import {
-  createLlmMetadataClient,
-  createServerClient,
-} from "#/api/typescript-client";
+import { ensureCompatibleAgentServer } from "../agent-server-compatibility";
+import { createLlmMetadataClient } from "../typescript-client";
 import { ModelsResponse, WebClientConfig } from "./option.types";
 
 class OptionService {
@@ -33,7 +31,7 @@ class OptionService {
   }
 
   static async getConfig(): Promise<WebClientConfig> {
-    await createServerClient().getServerInfo();
+    await ensureCompatibleAgentServer();
 
     return {
       app_mode: "oss",
@@ -46,7 +44,7 @@ class OptionService {
         enable_linear: false,
         hide_users_page: true,
         hide_billing_page: true,
-        hide_integrations_page: true,
+        hide_integrations_page: false,
         deployment_mode: "self_hosted",
       },
       providers_configured: [],

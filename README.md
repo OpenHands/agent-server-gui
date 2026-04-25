@@ -43,7 +43,7 @@ If you are **not** inside an OpenHands Cloud sandbox, follow the standard local 
 ### 1. Clone and install the frontend
 
 ```sh
-git clone https://github.com/neubig/agent-server-gui.git
+git clone https://github.com/OpenHands/agent-server-gui.git
 cd agent-server-gui
 npm install
 ```

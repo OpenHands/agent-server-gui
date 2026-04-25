@@ -1,13 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { useSelectedOrganizationId } from "#/context/use-selected-organization";
-import { useIsOnIntermediatePage } from "#/hooks/use-is-on-intermediate-page";
 import { DEFAULT_SETTINGS } from "#/services/settings";
 import { Settings, SettingsScope, SettingsValue } from "#/types/settings";
-import { organizationService } from "#/api/organization-service/organization-service.api";
 import SettingsService from "#/api/settings-service/settings-service.api";
-import { useIsAuthed } from "./use-is-authed";
-import { useConfig } from "./use-config";
 import {
   pickFirstBoolean,
   pickFirstNumber,
@@ -30,8 +25,6 @@ export const getErrorStatus = (error: unknown): number | undefined => {
   return undefined;
 };
 
-
-/** Look up a value in a nested object by dotted key path. */
 const lookupNested = (obj: Record<string, unknown>, key: string): unknown => {
   const parts = key.split(".");
   let current: unknown = obj;
@@ -125,49 +118,26 @@ const normalizeSettingsResponse = (settings: Partial<Settings>): Settings => {
 };
 
 export const getSettingsQueryFn = async (
-  scope: SettingsScope = "personal",
-  organizationId?: string | null,
+  _scope: SettingsScope = "personal",
 ): Promise<Settings> => {
-  const settings =
-    scope === "org"
-      ? await organizationService.getOrganizationSettings({
-          orgId: organizationId!,
-        })
-      : await SettingsService.getSettings();
-
+  const settings = await SettingsService.getSettings();
   return normalizeSettingsResponse(settings);
 };
 
 export const useSettings = (scope: SettingsScope = "personal") => {
-  const isOnIntermediatePage = useIsOnIntermediatePage();
-  const { data: userIsAuthenticated } = useIsAuthed();
-  const { organizationId } = useSelectedOrganizationId();
-  const { data: config } = useConfig();
-
-  const isOss = config?.app_mode === "oss";
-
   const query = useQuery({
-    queryKey: ["settings", scope, organizationId],
-    queryFn: () => getSettingsQueryFn(scope, organizationId),
+    queryKey: ["settings", scope],
+    queryFn: () => getSettingsQueryFn(scope),
     retry: (_, error) => getErrorStatus(error) !== 404,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,
-    enabled:
-      !isOnIntermediatePage &&
-      !!userIsAuthenticated &&
-      (isOss || !!organizationId),
     meta: {
       disableToast: true,
     },
   });
 
-  // We want to return the defaults if the settings aren't found so the user can still see the
-  // options to make their initial save. We don't set the defaults in `initialData` above because
-  // that would prepopulate the data to the cache and mess with expectations. Read more:
-  // https://tanstack.com/query/latest/docs/framework/react/guides/initial-query-data#using-initialdata-to-prepopulate-a-query
   if (getErrorStatus(query.error) === 404) {
-    // Create a new object with only the properties we need, avoiding rest destructuring
     return {
       data: DEFAULT_SETTINGS,
       error: query.error,

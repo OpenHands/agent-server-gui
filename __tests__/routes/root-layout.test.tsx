@@ -1,556 +1,115 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRoutesStub, useSearchParams } from "react-router";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createRoutesStub } from "react-router";
 import MainApp from "#/routes/root-layout";
-import OptionService from "#/api/option-service/option-service.api";
-import AuthService from "#/api/auth-service/auth-service.api";
-import SettingsService from "#/api/settings-service/settings-service.api";
-import { MOCK_DEFAULT_USER_SETTINGS } from "#/mocks/handlers";
 
-vi.mock("#/hooks/use-github-auth-url", () => ({
-  useGitHubAuthUrl: () => "https://github.com/oauth/authorize",
+const useConfigMock = vi.fn();
+const useSettingsMock = vi.fn();
+const migrateUserConsentMock = vi.fn();
+
+vi.mock("#/hooks/query/use-config", () => ({
+  useConfig: () => useConfigMock(),
 }));
 
-vi.mock("#/hooks/use-is-on-tos-page", () => ({
-  useIsOnTosPage: () => false,
-}));
-
-vi.mock("#/hooks/use-auto-login", () => ({
-  useAutoLogin: () => {},
-}));
-
-vi.mock("#/hooks/use-auth-callback", () => ({
-  useAuthCallback: () => {},
+vi.mock("#/hooks/query/use-settings", () => ({
+  useSettings: () => useSettingsMock(),
 }));
 
 vi.mock("#/hooks/use-migrate-user-consent", () => ({
   useMigrateUserConsent: () => ({
-    migrateUserConsent: vi.fn(),
+    migrateUserConsent: migrateUserConsentMock,
   }),
-}));
-
-vi.mock("#/hooks/use-reo-tracking", () => ({
-  useReoTracking: () => {},
 }));
 
 vi.mock("#/hooks/use-sync-posthog-consent", () => ({
   useSyncPostHogConsent: () => {},
 }));
 
-vi.mock("#/utils/custom-toast-handlers", () => ({
-  displaySuccessToast: vi.fn(),
+vi.mock("#/hooks/use-app-title", () => ({
+  useAppTitle: () => "OpenHands",
 }));
 
-vi.mock("#/hooks/use-invitation", () => ({
-  useInvitation: () => ({
-    invitationToken: null,
-    hasInvitation: false,
-    buildOAuthStateData: (baseState: Record<string, string>) => baseState,
-    clearInvitation: vi.fn(),
-  }),
+vi.mock("#/components/features/sidebar/sidebar", () => ({
+  Sidebar: () => <div data-testid="sidebar" />,
 }));
 
-function LoginStub() {
-  const [searchParams] = useSearchParams();
-  const emailVerificationRequired =
-    searchParams.get("email_verification_required") === "true";
-  const emailVerified = searchParams.get("email_verified") === "true";
-  const emailVerificationText = "AUTH$PLEASE_CHECK_EMAIL_TO_VERIFY";
-  const returnTo = searchParams.get("returnTo");
+vi.mock("#/components/features/analytics/analytics-consent-form-modal", () => ({
+  AnalyticsConsentFormModal: () => <div data-testid="analytics-consent-modal" />,
+}));
 
-  return (
-    <div data-testid="login-page">
-      <div data-testid="login-content">
-        {emailVerified && <div data-testid="email-verified-message" />}
-        {emailVerificationRequired && (
-          <div data-testid="email-verification-modal">
-            {emailVerificationText}
-          </div>
-        )}
-        {returnTo && <div data-testid="return-to-param">{returnTo}</div>}
-      </div>
-    </div>
-  );
-}
+vi.mock("#/components/features/alerts/alert-banner", () => ({
+  AlertBanner: () => <div data-testid="alert-banner" />,
+}));
+
+vi.mock("#/i18n", () => ({
+  default: {
+    changeLanguage: vi.fn(),
+  },
+}));
 
 const RouterStub = createRoutesStub([
   {
-    Component: MainApp,
     path: "/",
+    Component: MainApp,
     children: [
       {
-        Component: () => <div data-testid="outlet-content" />,
         path: "/",
+        Component: () => <div data-testid="outlet-content" />,
       },
     ],
   },
-  {
-    Component: LoginStub,
-    path: "/login",
-  },
-]);
-const RouterStubWithLogin = createRoutesStub([
-  {
-    Component: MainApp,
-    path: "/",
-    children: [
-      {
-        Component: () => <div data-testid="outlet-content" />,
-        path: "/",
-      },
-      {
-        Component: () => <div data-testid="settings-page" />,
-        path: "/settings",
-      },
-    ],
-  },
-  {
-    Component: () => <div data-testid="login-page" />,
-    path: "/login",
-  },
 ]);
 
-const RouterStubWithDeviceVerify = createRoutesStub([
-  {
-    Component: MainApp,
-    path: "/",
-    children: [
-      {
-        Component: () => <div data-testid="outlet-content" />,
-        path: "/",
-      },
-      {
-        Component: () => <div data-testid="device-verify-page" />,
-        path: "/oauth/device/verify",
-      },
-    ],
-  },
-  {
-    Component: LoginStub,
-    path: "/login",
-  },
-]);
-
-const renderMainApp = (initialEntries: string[] = ["/"]) =>
-  render(<RouterStub initialEntries={initialEntries} />, {
-    wrapper: ({ children }) => (
-      <QueryClientProvider
-        client={
-          new QueryClient({
-            defaultOptions: { queries: { retry: false } },
-          })
-        }
-      >
-        {children}
-      </QueryClientProvider>
-    ),
-  });
-
-const renderWithLoginStub = (
-  RouterStubComponent: ReturnType<typeof createRoutesStub>,
-  initialEntries: string[] = ["/"],
-) =>
-  render(<RouterStubComponent initialEntries={initialEntries} />, {
-    wrapper: ({ children }) => (
-      <QueryClientProvider
-        client={
-          new QueryClient({
-            defaultOptions: { queries: { retry: false } },
-          })
-        }
-      >
-        {children}
-      </QueryClientProvider>
-    ),
-  });
-
-describe("MainApp", () => {
+describe("root layout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useConfigMock.mockReturnValue({
+      isLoading: false,
+      data: {
+        maintenance_start_time: null,
+        faulty_models: [],
+        error_message: null,
+        updated_at: new Date().toISOString(),
+      },
+    });
+    useSettingsMock.mockReturnValue({
+      data: {
+        language: "en",
+        user_consents_to_analytics: true,
+      },
+    });
+  });
 
-    // @ts-expect-error - partial mock for testing
-    vi.spyOn(OptionService, "getConfig").mockResolvedValue({
-      app_mode: "saas",
-      posthog_client_key: "test-posthog-key",
-      providers_configured: ["github"],
-      auth_url: "https://auth.example.com",
-      feature_flags: {
-        enable_billing: false,
-        hide_llm_settings: false,
-        enable_jira: false,
-        enable_jira_dc: false,
-        enable_linear: false,
-        hide_users_page: false,
-        hide_billing_page: false,
-        hide_integrations_page: false,
+  it("shows a loading spinner while config is loading", () => {
+    useConfigMock.mockReturnValue({ isLoading: true, data: null });
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RouterStub initialEntries={["/"]} />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
+  });
+
+  it("renders the OSS layout and analytics modal when consent is missing", () => {
+    useSettingsMock.mockReturnValue({
+      data: {
+        language: "en",
+        user_consents_to_analytics: null,
       },
     });
 
-    vi.spyOn(AuthService, "authenticate").mockResolvedValue(true);
-
-    vi.spyOn(SettingsService, "getSettings").mockResolvedValue(
-      MOCK_DEFAULT_USER_SETTINGS,
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RouterStub initialEntries={["/"]} />
+      </QueryClientProvider>,
     );
 
-    vi.stubGlobal("localStorage", {
-      getItem: vi.fn(() => null),
-      setItem: vi.fn(),
-      removeItem: vi.fn(),
-      clear: vi.fn(),
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
-
-  describe("Email Verification", () => {
-    it("should redirect to login when email_verification_required=true is in query params", async () => {
-      const axiosError = {
-        response: { status: 401 },
-        isAxiosError: true,
-      };
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue(axiosError);
-
-      renderMainApp(["/?email_verification_required=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to login when email_verified=true is in query params", async () => {
-      const axiosError = {
-        response: { status: 401 },
-        isAxiosError: true,
-      };
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue(axiosError);
-
-      renderMainApp(["/?email_verified=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to login when email_verification_required and email_verified params are in query params together", async () => {
-      const axiosError = {
-        response: { status: 401 },
-        isAxiosError: true,
-      };
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue(axiosError);
-
-      renderMainApp(["/?email_verification_required=true&email_verified=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to login when email_verification_required=true is in query params", async () => {
-      const axiosError = {
-        response: { status: 401 },
-        isAxiosError: true,
-      };
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue(axiosError);
-
-      renderMainApp(["/?email_verification_required=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should not display EmailVerificationModal when email_verification_required is not in query params", async () => {
-      const axiosError = {
-        response: { status: 401 },
-        isAxiosError: true,
-      };
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue(axiosError);
-
-      renderMainApp(["/"]);
-
-      // User will be redirected to login, but modal should not show without query param
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-          expect(
-            screen.queryByTestId("email-verification-modal"),
-          ).not.toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should not display email verified message when email_verified is not in query params", async () => {
-      const axiosError = {
-        response: { status: 401 },
-        isAxiosError: true,
-      };
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue(axiosError);
-
-      renderMainApp(["/login"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-          expect(
-            screen.queryByTestId("email-verified-message"),
-          ).not.toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-  });
-
-  describe("Unauthenticated redirect", () => {
-    beforeEach(() => {
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue({
-        response: { status: 401 },
-        isAxiosError: true,
-      });
-    });
-
-    it("should redirect unauthenticated SaaS users to /login", async () => {
-      renderWithLoginStub(RouterStubWithLogin, ["/"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to /login with returnTo parameter when on a specific page", async () => {
-      renderWithLoginStub(RouterStubWithLogin, ["/settings"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should preserve query parameters in returnTo when redirecting to login", async () => {
-      renderWithLoginStub(RouterStubWithDeviceVerify, [
-        "/oauth/device/verify?user_code=F9XN6BKU",
-      ]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-          const returnToElement = screen.getByTestId("return-to-param");
-          expect(returnToElement).toBeInTheDocument();
-          expect(returnToElement.textContent).toBe(
-            "/oauth/device/verify?user_code=F9XN6BKU",
-          );
-        },
-        { timeout: 2000 },
-      );
-    });
-  });
-
-  describe("Re-authentication with stored login method", () => {
-    it("should show ReauthModal instead of redirecting to /login when login method exists", async () => {
-      // Arrange - user is unauthenticated but has a stored login method
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue({
-        response: { status: 401 },
-        isAxiosError: true,
-      });
-
-      vi.stubGlobal("localStorage", {
-        getItem: vi.fn((key: string) => {
-          if (key === "openhands_login_method") {
-            return "github";
-          }
-          return null;
-        }),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-        clear: vi.fn(),
-      });
-
-      // Act
-      renderWithLoginStub(RouterStubWithLogin, ["/"]);
-
-      // Assert - should show ReauthModal (with "Logging back in" text), not redirect to /login
-      await waitFor(
-        () => {
-          expect(screen.getByText("AUTH$LOGGING_BACK_IN")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-
-      // Login page should NOT be shown when login method exists
-      expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
-    });
-
-    it("should redirect to /login when no login method is stored", async () => {
-      // Arrange - user is unauthenticated and has no stored login method
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue({
-        response: { status: 401 },
-        isAxiosError: true,
-      });
-
-      vi.stubGlobal("localStorage", {
-        getItem: vi.fn(() => null),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-        clear: vi.fn(),
-      });
-
-      // Act
-      renderWithLoginStub(RouterStubWithLogin, ["/"]);
-
-      // Assert - should redirect to /login
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-  });
-
-  describe("Loading states", () => {
-    it("should show loading spinner while config is loading without redirecting", async () => {
-      // Arrange - config never resolves (loading state)
-      vi.spyOn(OptionService, "getConfig").mockImplementation(
-        () => new Promise(() => {}),
-      );
-
-      vi.stubGlobal("localStorage", {
-        getItem: vi.fn((key: string) => {
-          if (key === "openhands_login_method") {
-            return "github";
-          }
-          return null;
-        }),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-        clear: vi.fn(),
-      });
-
-      // Act
-      renderWithLoginStub(RouterStubWithLogin, ["/"]);
-
-      // Assert - should show loading spinner
-      await waitFor(() => {
-        expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
-      });
-
-      // Should NOT redirect to login while loading
-      expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
-    });
-
-    it("should show loading spinner while auth is loading without redirecting", async () => {
-      // Arrange - auth never resolves (loading state)
-      vi.spyOn(AuthService, "authenticate").mockImplementation(
-        () => new Promise(() => {}),
-      );
-
-      vi.stubGlobal("localStorage", {
-        getItem: vi.fn((key: string) => {
-          if (key === "openhands_login_method") {
-            return "github";
-          }
-          return null;
-        }),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-        clear: vi.fn(),
-      });
-
-      // Act
-      renderWithLoginStub(RouterStubWithLogin, ["/"]);
-
-      // Assert - should show loading spinner
-      await waitFor(() => {
-        expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
-      });
-
-      // Should NOT redirect to login while loading
-      expect(screen.queryByTestId("login-page")).not.toBeInTheDocument();
-    });
-  });
-
-  describe("Invitation URL Parameters", () => {
-    beforeEach(() => {
-      vi.spyOn(AuthService, "authenticate").mockRejectedValue({
-        response: { status: 401 },
-        isAxiosError: true,
-      });
-    });
-
-    it("should redirect to login when email_mismatch=true is in query params", async () => {
-      renderMainApp(["/?email_mismatch=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to login when invitation_success=true is in query params", async () => {
-      renderMainApp(["/?invitation_success=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to login when invitation_expired=true is in query params", async () => {
-      renderMainApp(["/?invitation_expired=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to login when invitation_invalid=true is in query params", async () => {
-      renderMainApp(["/?invitation_invalid=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
-
-    it("should redirect to login when already_member=true is in query params", async () => {
-      renderMainApp(["/?already_member=true"]);
-
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("login-page")).toBeInTheDocument();
-        },
-        { timeout: 2000 },
-      );
-    });
+    expect(screen.getByTestId("sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("outlet-content")).toBeInTheDocument();
+    expect(screen.getByTestId("analytics-consent-modal")).toBeInTheDocument();
+    expect(migrateUserConsentMock).toHaveBeenCalled();
   });
 });

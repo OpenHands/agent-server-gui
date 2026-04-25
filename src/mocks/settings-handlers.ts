@@ -345,6 +345,9 @@ const MOCK_VERIFIED_MODELS_BY_PROVIDER = MOCK_MODELS.reduce<
 export const SETTINGS_HANDLERS = [
   http.get("/server_info", async () =>
     HttpResponse.json({
+      uptime: 0,
+      idle_time: 0,
+      version: "1.18.1",
       agents: ["CodeActAgent"],
       default_agent: "CodeActAgent",
       models: MOCK_MODELS,
