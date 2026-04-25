@@ -9,19 +9,17 @@
 
 If you only read one section of this README, read this one. Most users will want to clone this repo, point it at a real `openhands-agent-server`, and start using the UI immediately.
 
-### Special case: developing inside OpenHands Cloud
+### Recommended local workflow
 
-If you are editing this repo from an OpenHands Cloud sandbox, **do not point this frontend at the sandbox's existing agent-server**.
-
-Current `agent-server` releases share the default `openhands` tmux socket and `workspace/conversations` persistence directory. A naive second server in the same sandbox can break the OpenHands conversation that is powering your cloud session (for example with errors like `no server running on /tmp/tmux-*/openhands`). Reusing the cloud session's existing backend is also not the intended development flow.
-
-For safe live debugging, use:
+The recommended way to run this project locally is:
 
 ```sh
-npm run dev:safe
+npm run dev
 ```
 
-That command starts a dedicated local `agent-server` for this checkout on `127.0.0.1:18000` and points the frontend at it. It expects `agent-server` to already be installed and on your `PATH`. It isolates tmux state and conversation persistence by setting separate `TMUX_TMPDIR`, `OH_CONVERSATIONS_PATH`, `OH_BASH_EVENTS_DIR`, and `OH_VSCODE_PORT` values under `.openhands-dev/`, so it does not collide with the OpenHands Cloud backend already running in the sandbox.
+That command starts a dedicated local `agent-server` for this checkout on `127.0.0.1:18000` and points the frontend at it. It expects `agent-server` to already be installed and on your `PATH`. It isolates tmux state and conversation persistence by setting separate `TMUX_TMPDIR`, `OH_CONVERSATIONS_PATH`, `OH_BASH_EVENTS_DIR`, and `OH_VSCODE_PORT` values under `.openhands-dev/`, so it does not collide with other local or cloud-backed OpenHands sessions.
+
+This is especially important if you are editing the repo from an OpenHands Cloud sandbox: **do not point this frontend at the sandbox's existing agent-server**. Current `agent-server` releases share the default `openhands` tmux socket and `workspace/conversations` persistence directory, so a naive second server in the same sandbox can break the OpenHands conversation that is powering your cloud session (for example with errors like `no server running on /tmp/tmux-*/openhands`).
 
 Useful overrides:
 
@@ -30,15 +28,13 @@ Useful overrides:
 - `OH_GUI_SAFE_STATE_DIR` — base directory for isolated server state
 - `VITE_WORKING_DIR` — repo root used for new conversations (defaults to the current checkout)
 
-If you would rather run the backend somewhere else entirely, point `VITE_BACKEND_HOST` / `VITE_BACKEND_BASE_URL` at that separate backend instead. For frontend-only work, use `npm run dev:mock`.
-
-If you are **not** inside an OpenHands Cloud sandbox, follow the standard local setup below.
+If you would rather run the backend somewhere else entirely, point `VITE_BACKEND_HOST` / `VITE_BACKEND_BASE_URL` at that separate backend and use `npm run dev:frontend`. For frontend-only work with mocks, use `npm run dev:mock`.
 
 ### Prerequisites
 
 - Node.js 22.12.x or later
 - `npm`
-- A running OpenHands Agent Server (`agent-server`)
+- OpenHands Agent Server (`agent-server`) installed and available on your `PATH`
 
 ### 1. Clone and install the frontend
 
@@ -48,7 +44,7 @@ cd agent-server-gui
 npm install
 ```
 
-### 2. Install and start OpenHands Agent Server
+### 2. Install OpenHands Agent Server
 
 If you do not already have the backend installed, install `uv` first (OpenHands SDK recommends `uv` 0.8.13+):
 
@@ -68,13 +64,15 @@ uv tool install -U \
 
 `uv tool install` exposes the server as the `agent-server` CLI. If `~/.local/bin` is not already on your `PATH`, either add it or run the binary via its full path.
 
-Then start the backend on the default local port:
+Once `agent-server` is installed, `npm run dev` is the easiest from-scratch setup because it launches an isolated backend for this checkout automatically.
+
+If you prefer to run the backend yourself instead, start it on the default local port:
 
 ```sh
 agent-server --host 127.0.0.1 --port 8000
 ```
 
-The frontend expects the backend at `127.0.0.1:8000` by default, so this is the easiest from-scratch setup.
+The frontend-only workflow below expects the backend at `127.0.0.1:8000` by default.
 
 If you start the backend with `SESSION_API_KEY` or `OH_SESSION_API_KEYS_0`, every `/api/*` route is authenticated with `X-Session-API-Key`. In that case the frontend must send the same key via `VITE_SESSION_API_KEY`.
 
@@ -107,15 +105,23 @@ Notes:
 - If the backend is secured with `SESSION_API_KEY` or `OH_SESSION_API_KEYS_0`, set `VITE_SESSION_API_KEY` to the same value or live requests will fail with `401 Unauthorized`.
 - If your backend does not require `X-Session-API-Key`, leave `VITE_SESSION_API_KEY` unset.
 
-### 4. Start the frontend
+### 4. Start the recommended local dev stack
 
 ```sh
 npm run dev
 ```
 
-This starts the frontend on [http://localhost:3001](http://localhost:3001).
+This starts an isolated local `agent-server` for this checkout and the frontend on [http://localhost:3001](http://localhost:3001).
 
-### 5. First-run sanity check
+### 5. Start only the frontend against a backend you already launched (optional)
+
+```sh
+npm run dev:frontend
+```
+
+Use this only if you intentionally started `agent-server` yourself or want the frontend to talk to another backend.
+
+### 6. First-run sanity check
 
 After the page opens:
 
