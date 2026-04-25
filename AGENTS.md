@@ -14,12 +14,11 @@
   - `VITE_ENABLE_BROWSER_TOOLS=false` to omit `BrowserToolSet` from new conversation payloads.
 - The UI keeps most OpenHands routes/layout intact, but SaaS/org/billing/integration behavior is intentionally hidden or stubbed via the fabricated OSS config because there is no separate app backend.
 - Verification command: `npm run typecheck && npm run build`.
-- `@openhands/typescript-client` is currently consumed via a vendored local file dependency at `vendor/openhands-typescript-client` because anonymous/public GitHub Packages install was not usable in this environment. The vendored package is pinned to `v0.1.2`, keeps built `dist/` output committed, and exposes extra subpath exports for `client/http-client`, `events/remote-events-list`, and `workspace/remote-workspace`.
+- `@openhands/typescript-client` remains pinned in `package.json` to `github:OpenHands/typescript-client#4716d2e`. The repo also carries a vendored copy at `vendor/openhands-typescript-client`; treat that as a reference/local fallback, not the default package source.
 - Shared TypeScript-client adapters live in `src/api/typescript-client.ts`; prefer those helpers for agent-server-backed REST/workspace/event/VS Code calls before falling back to `open-hands-axios`.
-- In this repo state, `src/api/typescript-client.ts` imports the vendored TypeScript client directly from `vendor/openhands-typescript-client/src/*` rather than the package subpath exports, because the file dependency does not currently ship the expected built `dist/` subpath files in this environment.
+- `src/api/typescript-client.ts` currently imports the package subpath exports (`@openhands/typescript-client/*`), so keep the installed client exposing `dist/clients.js`, `dist/client/http-client.js`, `dist/events/remote-events-list.js`, and `dist/workspace/remote-workspace.js`.
 - Local verification/build gotchas:
   - `npm run typecheck` assumes generated translation types exist; run `npm run make-i18n` first if `src/i18n/declaration.ts` is missing.
-  - The vendored `@openhands/typescript-client` dependency is a symlink into `vendor/openhands-typescript-client`; if its `dist/` output is missing, rebuild it with `npm --prefix vendor/openhands-typescript-client run build` before typecheck/build.
   - Vitest should exclude `vendor/**` so the vendored package's own tests do not get collected by the app test suite.
 - Phase-1 OSS cleanup removed SaaS-only auth/org/billing/onboarding/payment/invitation codepaths, routes, and tests. Keep `integrations`, `git-settings`, `secrets`, MCP settings, and other local/self-hosted flows intact when simplifying OSS behavior.
 - When merging main into the Phase-1 OSS cleanup branch, keep the new agent-server compatibility bootstrap in `src/root.tsx`, but do not reintroduce SaaS invitation cleanup or enterprise CTA chrome in the OSS user menu; the OSS account menu should just render settings links plus Docs.
