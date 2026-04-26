@@ -3,9 +3,17 @@ import { cleanup } from "@testing-library/react";
 import { server } from "#/mocks/node";
 import "@testing-library/jest-dom/vitest";
 
-HTMLCanvasElement.prototype.getContext = vi.fn();
-HTMLElement.prototype.scrollTo = vi.fn();
-window.scrollTo = vi.fn();
+if (typeof HTMLCanvasElement !== "undefined") {
+  HTMLCanvasElement.prototype.getContext = vi.fn();
+}
+
+if (typeof HTMLElement !== "undefined") {
+  HTMLElement.prototype.scrollTo = vi.fn();
+}
+
+if (typeof window !== "undefined") {
+  window.scrollTo = vi.fn();
+}
 
 // Mock ResizeObserver for test environment
 class MockResizeObserver {
