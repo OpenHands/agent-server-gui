@@ -42,6 +42,21 @@ describe("useWebSocket", () => {
   afterEach(() => mswServer.resetHandlers());
   afterAll(() => mswServer.close());
 
+  const waitForConnection = async (
+    result: {
+      current: {
+        isConnected: boolean;
+      };
+    },
+  ) => {
+    await waitFor(
+      () => {
+        expect(result.current.isConnected).toBe(true);
+      },
+      { timeout: 5000 },
+    );
+  };
+
   it("should establish a WebSocket connection", async () => {
     const { result } = renderHook(() => useWebSocket("ws://acme.com/ws"));
 
@@ -50,9 +65,7 @@ describe("useWebSocket", () => {
     expect(result.current.lastMessage).toBe(null);
 
     // Wait for connection to be established
-    await waitFor(() => {
-      expect(result.current.isConnected).toBe(true);
-    });
+    await waitForConnection(result);
 
     // Should receive the welcome message from our mock
     await waitFor(() => {
@@ -160,9 +173,7 @@ describe("useWebSocket", () => {
     const { result } = renderHook(() => useWebSocket(baseUrl, { queryParams }));
 
     // Wait for connection to be established
-    await waitFor(() => {
-      expect(result.current.isConnected).toBe(true);
-    });
+    await waitForConnection(result);
 
     // Verify that the WebSocket was created with query parameters
     expect(result.current.socket).toBeTruthy();
@@ -184,9 +195,7 @@ describe("useWebSocket", () => {
     expect(onOpenSpy).not.toHaveBeenCalled();
 
     // Wait for connection to be established
-    await waitFor(() => {
-      expect(result.current.isConnected).toBe(true);
-    });
+    await waitForConnection(result);
 
     // onOpen handler should have been called
     expect(onOpenSpy).toHaveBeenCalledOnce();
@@ -201,9 +210,7 @@ describe("useWebSocket", () => {
     );
 
     // Wait for connection to be established
-    await waitFor(() => {
-      expect(result.current.isConnected).toBe(true);
-    });
+    await waitForConnection(result);
 
     // Reset spy after connection is established to ignore any spurious
     // close events fired by the MSW mock during the handshake.
