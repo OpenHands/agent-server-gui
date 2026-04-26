@@ -11,8 +11,22 @@ if (typeof HTMLElement !== "undefined") {
   HTMLElement.prototype.scrollTo = vi.fn();
 }
 
-if (typeof window !== "undefined") {
-  window.scrollTo = vi.fn();
+const windowStub =
+  typeof window === "undefined"
+    ? ({ event: undefined } as unknown as Window & typeof globalThis)
+    : window;
+
+vi.stubGlobal("window", windowStub);
+windowStub.scrollTo = vi.fn();
+
+if (typeof requestAnimationFrame === "undefined") {
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
+    setTimeout(() => callback(0), 0),
+  );
+  vi.stubGlobal(
+    "cancelAnimationFrame",
+    (timeoutId: ReturnType<typeof setTimeout>) => clearTimeout(timeoutId),
+  );
 }
 
 // Mock ResizeObserver for test environment

@@ -49,6 +49,27 @@ vi.mock("#/hooks/use-agent-state", () => ({
   })),
 }));
 
+vi.mock("#/components/features/chat/btw-messages", () => ({
+  BtwMessages: () => <div data-testid="btw-messages" />,
+}));
+
+vi.mock("#/components/features/chat/chat-suggestions", () => ({
+  ChatSuggestions: () => <div data-testid="chat-suggestions" />,
+}));
+
+vi.mock("#/components/features/chat/interactive-chat-box", () => ({
+  InteractiveChatBox: () => <div data-testid="interactive-chat-box" />,
+}));
+
+vi.mock("#/components/shared/buttons/scroll-to-bottom-button", () => ({
+  ScrollToBottomButton: () => <button type="button">Scroll to bottom</button>,
+}));
+
+vi.mock("#/components/v1/chat", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("#/components/v1/chat")>()),
+  Messages: () => <div data-testid="v1-messages" />,
+}));
+
 // Helper to render with QueryClient and route params
 const renderWithQueryClient = (
   ui: React.ReactElement,
