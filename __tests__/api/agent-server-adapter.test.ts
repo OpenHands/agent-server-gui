@@ -56,6 +56,16 @@ describe("buildStartConversationRequest", () => {
       api_key: "nested-key",
       base_url: "https://nested.example.com",
     });
+    expect(payload.agent.condenser).toEqual({
+      kind: "LLMSummarizingCondenser",
+      llm: {
+        model: "nested-model",
+        api_key: "nested-key",
+        base_url: "https://nested.example.com",
+        usage_id: "condenser",
+      },
+      max_size: 120,
+    });
     expect(payload.agent.tools).toEqual([
       { name: "terminal", params: {} },
       { name: "file_editor", params: {} },

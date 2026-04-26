@@ -225,6 +225,33 @@ function buildInitialMessage(
   };
 }
 
+function buildCondenserConfig(
+  llm: SettingsRecord,
+  rawCondenser: unknown,
+): SettingsRecord | undefined {
+  const condenser = toRecord(rawCondenser);
+
+  if (condenser.enabled !== true) {
+    return undefined;
+  }
+
+  const condenserLlm = {
+    ...llm,
+    usage_id: "condenser",
+  };
+
+  const config: SettingsRecord = {
+    kind: "LLMSummarizingCondenser",
+    llm: condenserLlm,
+  };
+
+  if (typeof condenser.max_size === "number") {
+    config.max_size = condenser.max_size;
+  }
+
+  return config;
+}
+
 function buildConfiguredAgentSettings(settings: Settings): SettingsRecord {
   const agentSettings = toRecord(settings.agent_settings);
   const llm = toRecord(agentSettings.llm);
@@ -246,11 +273,19 @@ function buildConfiguredAgentSettings(settings: Settings): SettingsRecord {
     delete llm.base_url;
   }
 
+  const condenser = buildCondenserConfig(llm, agentSettings.condenser);
+
   AGENT_SETTINGS_METADATA_KEYS.forEach((key) => delete agentSettings[key]);
 
   const mcpConfig = toRecord(agentSettings.mcp_config);
   if (Object.keys(mcpConfig).length === 0 || !("mcpServers" in mcpConfig)) {
     delete agentSettings.mcp_config;
+  }
+
+  if (condenser) {
+    agentSettings.condenser = condenser;
+  } else {
+    delete agentSettings.condenser;
   }
 
   return {
