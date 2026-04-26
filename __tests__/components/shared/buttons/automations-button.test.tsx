@@ -1,6 +1,10 @@
 import { createEvent, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AutomationsButton } from "#/components/shared/buttons/automations-button";
+
+vi.mock("#/components/shared/buttons/styled-tooltip", () => ({
+  StyledTooltip: ({ children }: { children: unknown }) => children,
+}));
 
 describe("AutomationsButton", () => {
   it("should render a link to /automations", () => {
