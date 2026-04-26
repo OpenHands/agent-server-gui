@@ -37,7 +37,6 @@ Then install or upgrade the agent server package together with the tool/workspac
 uv tool install -U \
   --with openhands-tools \
   --with openhands-workspace \
-  --with libtmux \
   openhands-agent-server
 ```
 
