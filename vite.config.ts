@@ -33,6 +33,12 @@ export default defineConfig(({ mode }) => {
     ],
     optimizeDeps: {
       include: [
+        // Pre-bundle client entry dependencies so the first page load does not 504
+        // with Vite's "Outdated Optimize Dep" before hydration finishes.
+        "react",
+        "react/jsx-runtime",
+        "react-dom/client",
+        "react-router/dom",
         // Pre-bundle ALL dependencies to prevent runtime optimization and page reloads
         // These are discovered during initial app load:
         "posthog-js",

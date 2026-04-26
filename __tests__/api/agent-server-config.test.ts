@@ -40,3 +40,4 @@ describe("getAgentServerBaseUrl", () => {
     expect(getAgentServerBaseUrl()).toBe("https://agent.example.com");
   });
 });
+
