@@ -11,11 +11,7 @@ If you only read one section of this README, read this one. Most users will want
 
 ### Recommended local workflow
 
-The recommended way to run this project locally is:
-
-```sh
-npm run dev
-```
+After you complete the install steps below, run `npm run dev` (or `npm run dev:safe`).
 
 That command starts a dedicated local `agent-server` for this checkout on `127.0.0.1:18000` and points the frontend at it. It expects `agent-server` to already be installed and on your `PATH`. It isolates tmux state and conversation persistence by setting separate `TMUX_TMPDIR`, `OH_CONVERSATIONS_PATH`, `OH_BASH_EVENTS_DIR`, and `OH_VSCODE_PORT` values under `.openhands-dev/`, so it does not collide with other local or cloud-backed OpenHands sessions.
 
@@ -62,7 +58,12 @@ uv tool install -U \
   openhands-agent-server
 ```
 
-`uv tool install` exposes the server as the `agent-server` CLI. If `~/.local/bin` is not already on your `PATH`, either add it or run the binary via its full path.
+`uv tool install` exposes the server as the `agent-server` CLI. If `~/.local/bin` is not already on your `PATH`, add it before continuing, for example:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+command -v agent-server
+```
 
 Once `agent-server` is installed, `npm run dev` is the easiest from-scratch setup because it launches an isolated backend for this checkout automatically.
 
@@ -173,20 +174,20 @@ npm run start
 
 The frontend application uses the following environment variables:
 
-| Variable                    | Description                                                                          | Default Value            |
-| --------------------------- | ------------------------------------------------------------------------------------ | ------------------------ |
-| `VITE_BACKEND_BASE_URL`     | Full base URL for the agent server used by direct browser requests                   | current browser origin   |
-| `VITE_BACKEND_HOST`         | Backend host used by the Vite dev proxy                                              | `127.0.0.1:8000`         |
-| `VITE_SESSION_API_KEY`      | Optional `X-Session-API-Key` header value for authenticated agent_server instances   | -                        |
-| `VITE_WORKING_DIR`          | Workspace path sent when starting new conversations                                  | `/workspace/project`     |
-| `VITE_WORKER_URLS`          | Optional comma-separated worker/app URLs for the Browser tab                         | -                        |
-| `VITE_ENABLE_BROWSER_TOOLS` | Set to `false` to omit `BrowserToolSet` from new conversation payloads               | `true`                   |
-| `VITE_MOCK_API`             | Enable/disable API mocking with MSW                                                  | `false`                  |
-| `VITE_MOCK_SAAS`            | Simulate SaaS mode in development                                                    | `false`                  |
-| `VITE_USE_TLS`              | Use HTTPS/WSS for the Vite proxy target                                              | `false`                  |
-| `VITE_FRONTEND_PORT`        | Port to run the frontend application                                                 | `3001`                   |
-| `VITE_INSECURE_SKIP_VERIFY` | Skip TLS certificate verification for proxied backend requests                       | `false`                  |
-| `VITE_GITHUB_TOKEN`         | GitHub token for repository access (used in some tests)                              | -                        |
+| Variable                    | Description                                                                        | Default Value          |
+| --------------------------- | ---------------------------------------------------------------------------------- | ---------------------- |
+| `VITE_BACKEND_BASE_URL`     | Full base URL for the agent server used by direct browser requests                 | current browser origin |
+| `VITE_BACKEND_HOST`         | Backend host used by the Vite dev proxy                                            | `127.0.0.1:8000`       |
+| `VITE_SESSION_API_KEY`      | Optional `X-Session-API-Key` header value for authenticated agent_server instances | -                      |
+| `VITE_WORKING_DIR`          | Workspace path sent when starting new conversations                                | `/workspace/project`   |
+| `VITE_WORKER_URLS`          | Optional comma-separated worker/app URLs for the Browser tab                       | -                      |
+| `VITE_ENABLE_BROWSER_TOOLS` | Set to `false` to omit `BrowserToolSet` from new conversation payloads             | `true`                 |
+| `VITE_MOCK_API`             | Enable/disable API mocking with MSW                                                | `false`                |
+| `VITE_MOCK_SAAS`            | Simulate SaaS mode in development                                                  | `false`                |
+| `VITE_USE_TLS`              | Use HTTPS/WSS for the Vite proxy target                                            | `false`                |
+| `VITE_FRONTEND_PORT`        | Port to run the frontend application                                               | `3001`                 |
+| `VITE_INSECURE_SKIP_VERIFY` | Skip TLS certificate verification for proxied backend requests                     | `false`                |
+| `VITE_GITHUB_TOKEN`         | GitHub token for repository access (used in some tests)                            | -                      |
 
 You can create a `.env` file in the project directory with these variables based on `.env.sample`.
 
@@ -237,6 +238,7 @@ components
 ### Testing Framework and Tools
 
 We use the following testing tools:
+
 - **Test Runner**: Vitest
 - **Rendering**: React Testing Library
 - **User Interactions**: @testing-library/user-event
@@ -246,11 +248,13 @@ We use the following testing tools:
 ### Running Tests
 
 To run all tests:
+
 ```sh
 npm run test
 ```
 
 To run tests with coverage:
+
 ```sh
 npm run test:coverage
 ```
@@ -290,6 +294,7 @@ npm run test:coverage
    - Verify text rendering across different languages
 
 Example Test Structure:
+
 ```typescript
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -337,6 +342,7 @@ For real-world examples of testing, check out these test files:
 ### Continuous Integration
 
 Tests are automatically run during:
+
 - Pre-commit hooks
 - Pull request checks
 - CI/CD pipeline

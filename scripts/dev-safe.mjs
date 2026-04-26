@@ -141,14 +141,19 @@ async function main() {
     });
   });
 
-  await Promise.race([
-    waitForServer(`${config.backendBaseUrl}/server_info`),
-    backendErrored,
-    backendExited,
-  ]);
+  try {
+    await Promise.race([
+      waitForServer(`${config.backendBaseUrl}/server_info`),
+      backendErrored,
+      backendExited,
+    ]);
+  } catch (error) {
+    shutdown();
+    throw error;
+  }
 
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-  frontend = spawnProcess(npmCommand, ["run", "dev"], {
+  frontend = spawnProcess(npmCommand, ["run", "dev:frontend"], {
     cwd: config.cwd,
     env: {
       ...process.env,
@@ -175,6 +180,6 @@ async function main() {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 1;
+    process.exit(1);
   });
 }
