@@ -57,5 +57,6 @@
 - README expectation: keep the first section as a concrete, chronological from-scratch quickstart for running this frontend against a real `openhands-agent-server` (clone, install backend, optional `.env`, run `npm run dev`).
 - Keep README user-focused and move contributor/developer-specific workflows (Cloud sandbox debugging, `dev:safe`, mock mode, detailed env vars/build-test notes) into `DEVELOPMENT.md`.
 - `scripts/dev-safe.mjs` should fail fast if `agent-server` cannot be spawned (for example missing PATH entries).
+- Vite dev mode can black-screen on first load with `504 Outdated Optimize Dep` if core client-entry deps are not prebundled; keep `react`, `react/jsx-runtime`, `react-dom/client`, and `react-router/dom` in `optimizeDeps.include`.
 
 - As an OpenHands incubator **Sandbox** project, the repo should carry the standard sandbox warning badge in `README.md` and include a root `LICENSE` file to satisfy the incubator-program requirements.
