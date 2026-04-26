@@ -26,6 +26,15 @@ const readStoredSettings = (): Partial<Settings> => {
 };
 
 const syncDerivedSettings = (settings: Partial<Settings>): Settings => {
+  const agentSettings = mergeRecords(
+    DEFAULT_SETTINGS.agent_settings ?? {},
+    settings.agent_settings ?? {},
+  );
+  const conversationSettings = mergeRecords(
+    DEFAULT_SETTINGS.conversation_settings ?? {},
+    settings.conversation_settings ?? {},
+  );
+
   const merged = {
     ...deepClone(DEFAULT_SETTINGS),
     ...settings,
@@ -33,39 +42,54 @@ const syncDerivedSettings = (settings: Partial<Settings>): Settings => {
       ...(DEFAULT_SETTINGS.provider_tokens_set ?? {}),
       ...(settings.provider_tokens_set ?? {}),
     },
-    agent_settings: mergeRecords(
-      DEFAULT_SETTINGS.agent_settings ?? {},
-      settings.agent_settings ?? {},
-    ),
-    conversation_settings: mergeRecords(
-      DEFAULT_SETTINGS.conversation_settings ?? {},
-      settings.conversation_settings ?? {},
-    ),
+    agent_settings: agentSettings,
+    conversation_settings: conversationSettings,
   } as Settings;
+
+  const llm = agentSettings.llm as Record<string, SettingsValue> | undefined;
+  const condenser = agentSettings.condenser as
+    | Record<string, SettingsValue>
+    | undefined;
+
+  if (typeof agentSettings.agent === "string") {
+    merged.agent = agentSettings.agent;
+  }
+  if (typeof llm?.model === "string" && llm.model.length > 0) {
+    merged.llm_model = llm.model;
+  }
+  if (typeof llm?.base_url === "string") {
+    merged.llm_base_url = llm.base_url;
+  }
+  if (typeof llm?.api_key === "string") {
+    merged.llm_api_key = llm.api_key;
+  }
+  if (typeof condenser?.enabled === "boolean") {
+    merged.enable_default_condenser = condenser.enabled;
+  }
+  if (typeof condenser?.max_size === "number") {
+    merged.condenser_max_size = condenser.max_size;
+  }
+  if (agentSettings.mcp_config) {
+    merged.mcp_config = agentSettings.mcp_config as Settings["mcp_config"];
+  }
+
+  if (typeof conversationSettings.confirmation_mode === "boolean") {
+    merged.confirmation_mode = conversationSettings.confirmation_mode;
+  }
+  if (
+    typeof conversationSettings.security_analyzer === "string" ||
+    conversationSettings.security_analyzer === null
+  ) {
+    merged.security_analyzer = conversationSettings.security_analyzer as
+      | string
+      | null;
+  }
+  if (typeof conversationSettings.max_iterations === "number") {
+    merged.max_iterations = conversationSettings.max_iterations;
+  }
 
   merged.llm_api_key_set = !!merged.llm_api_key;
   merged.search_api_key_set = !!merged.search_api_key;
-
-  merged.agent_settings = {
-    ...(merged.agent_settings ?? {}),
-    agent: "Agent",
-    llm: {
-      model: merged.llm_model,
-      base_url: merged.llm_base_url,
-    },
-    condenser: {
-      enabled: merged.enable_default_condenser,
-      max_size: merged.condenser_max_size,
-    },
-    ...(merged.mcp_config ? { mcp_config: merged.mcp_config } : {}),
-  };
-
-  merged.conversation_settings = {
-    ...(merged.conversation_settings ?? {}),
-    confirmation_mode: merged.confirmation_mode,
-    security_analyzer: merged.security_analyzer,
-    max_iterations: merged.max_iterations,
-  };
 
   return merged;
 };
@@ -96,7 +120,9 @@ class SettingsService {
     const agentSettingsDiff = (settings.agent_settings_diff ??
       settings.agent_settings) as Record<string, SettingsValue> | undefined;
     const conversationSettingsDiff = (settings.conversation_settings_diff ??
-      settings.conversation_settings) as Record<string, SettingsValue> | undefined;
+      settings.conversation_settings) as
+      | Record<string, SettingsValue>
+      | undefined;
 
     const nextAgentSettings = mergeRecords(
       current.agent_settings ?? {},
@@ -114,7 +140,9 @@ class SettingsService {
       conversation_settings: nextConversationSettings,
     };
 
-    const llm = nextAgentSettings.llm as Record<string, SettingsValue> | undefined;
+    const llm = nextAgentSettings.llm as
+      | Record<string, SettingsValue>
+      | undefined;
     const condenser = nextAgentSettings.condenser as
       | Record<string, SettingsValue>
       | undefined;
@@ -139,7 +167,8 @@ class SettingsService {
     }
 
     if (typeof nextConversationSettings.confirmation_mode === "boolean") {
-      nextSettings.confirmation_mode = nextConversationSettings.confirmation_mode;
+      nextSettings.confirmation_mode =
+        nextConversationSettings.confirmation_mode;
     }
     if (typeof nextConversationSettings.security_analyzer === "string") {
       nextSettings.security_analyzer =
@@ -149,7 +178,8 @@ class SettingsService {
       nextSettings.max_iterations = nextConversationSettings.max_iterations;
     }
     if (nextAgentSettings.mcp_config) {
-      nextSettings.mcp_config = nextAgentSettings.mcp_config as Settings["mcp_config"];
+      nextSettings.mcp_config =
+        nextAgentSettings.mcp_config as Settings["mcp_config"];
     }
 
     delete nextSettings.agent_settings_diff;

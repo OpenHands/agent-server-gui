@@ -139,14 +139,56 @@ export function toV1ConversationPage(data: {
   };
 }
 
-function getConfirmationPolicy(settings: Settings) {
-  return settings.confirmation_mode
-    ? { kind: "AlwaysConfirm" }
-    : { kind: "NeverConfirm" };
+type SettingsRecord = Record<string, unknown>;
+
+const AGENT_SETTINGS_METADATA_KEYS = new Set([
+  "schema_version",
+  "agent_kind",
+  "agent",
+]);
+
+const CONVERSATION_SETTINGS_METADATA_KEYS = new Set([
+  "schema_version",
+  "agent_settings",
+  "workspace",
+  "conversation_id",
+  "initial_message",
+  "plugins",
+]);
+
+function toRecord(value: unknown): SettingsRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return structuredClone(value as SettingsRecord);
 }
 
-function getSecurityAnalyzer(settings: Settings) {
-  switch (settings.security_analyzer) {
+function normalizeSecretString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function getConversationConfirmationPolicy(
+  conversationSettings: SettingsRecord,
+) {
+  if (conversationSettings.confirmation_mode !== true) {
+    return { kind: "NeverConfirm" };
+  }
+
+  if (conversationSettings.security_analyzer === "llm") {
+    return { kind: "ConfirmRisky", threshold: "HIGH", confirm_unknown: true };
+  }
+
+  return { kind: "AlwaysConfirm" };
+}
+
+function getConversationSecurityAnalyzer(conversationSettings: SettingsRecord) {
+  switch (conversationSettings.security_analyzer) {
     case "llm":
       return { kind: "LLMSecurityAnalyzer" };
     case "pattern":
@@ -170,7 +212,9 @@ function buildInitialMessage(
   query?: string,
   conversationInstructions?: string,
 ) {
-  const parts = [query?.trim(), conversationInstructions?.trim()].filter(Boolean);
+  const parts = [query?.trim(), conversationInstructions?.trim()].filter(
+    Boolean,
+  );
   if (parts.length === 0) {
     return null;
   }
@@ -181,75 +225,184 @@ function buildInitialMessage(
   };
 }
 
+function buildCondenserConfig(
+  llm: SettingsRecord,
+  rawCondenser: unknown,
+): SettingsRecord | undefined {
+  const condenser = toRecord(rawCondenser);
+
+  if (condenser.enabled !== true) {
+    return undefined;
+  }
+
+  const condenserLlm = {
+    ...llm,
+    usage_id: "condenser",
+  };
+
+  const config: SettingsRecord = {
+    kind: "LLMSummarizingCondenser",
+    llm: condenserLlm,
+  };
+
+  if (typeof condenser.max_size === "number") {
+    config.max_size = condenser.max_size;
+  }
+
+  return config;
+}
+
+function buildConfiguredAgentSettings(settings: Settings): SettingsRecord {
+  const agentSettings = toRecord(settings.agent_settings);
+  const llm = toRecord(agentSettings.llm);
+
+  llm.model =
+    typeof llm.model === "string" ? llm.model : DEFAULT_SETTINGS.llm_model;
+
+  const apiKey = normalizeSecretString(llm.api_key);
+  if (apiKey) {
+    llm.api_key = apiKey;
+  } else {
+    delete llm.api_key;
+  }
+
+  const baseUrl = normalizeSecretString(llm.base_url);
+  if (baseUrl) {
+    llm.base_url = baseUrl;
+  } else {
+    delete llm.base_url;
+  }
+
+  const condenser = buildCondenserConfig(llm, agentSettings.condenser);
+
+  AGENT_SETTINGS_METADATA_KEYS.forEach((key) => delete agentSettings[key]);
+
+  const mcpConfig = toRecord(agentSettings.mcp_config);
+  if (Object.keys(mcpConfig).length === 0 || !("mcpServers" in mcpConfig)) {
+    delete agentSettings.mcp_config;
+  }
+
+  if (condenser) {
+    agentSettings.condenser = condenser;
+  } else {
+    delete agentSettings.condenser;
+  }
+
+  return {
+    ...agentSettings,
+    llm,
+    tools: getAgentTools(),
+  };
+}
+
+function createAgentFromSettings(agentSettings: SettingsRecord) {
+  return {
+    kind: "Agent",
+    ...agentSettings,
+  };
+}
+
+function buildConfiguredConversationSettings(options: {
+  settings: Settings;
+  query?: string;
+  conversationInstructions?: string;
+  plugins?: PluginSpec[];
+}): SettingsRecord {
+  const { settings, query, conversationInstructions, plugins } = options;
+  const conversationSettings = toRecord(settings.conversation_settings);
+  const initialMessage = buildInitialMessage(query, conversationInstructions);
+
+  CONVERSATION_SETTINGS_METADATA_KEYS.forEach(
+    (key) => delete conversationSettings[key],
+  );
+
+  return {
+    ...conversationSettings,
+    workspace: {
+      kind: "LocalWorkspace",
+      working_dir: getAgentServerWorkingDir(),
+    },
+    ...(initialMessage ? { initial_message: initialMessage } : {}),
+    ...(plugins?.length
+      ? {
+          plugins: plugins.map((plugin) => ({
+            source: plugin.source,
+            ...(plugin.ref ? { ref: plugin.ref } : {}),
+            ...(plugin.repo_path ? { repo_path: plugin.repo_path } : {}),
+          })),
+        }
+      : {}),
+  };
+}
+
 export function buildStartConversationRequest(options: {
   settings: Settings;
   query?: string;
   conversationInstructions?: string;
   plugins?: PluginSpec[];
 }) {
-  const { settings, query, conversationInstructions, plugins } = options;
-
-  const llm: Record<string, unknown> = {
-    model: settings.llm_model || DEFAULT_SETTINGS.llm_model,
-  };
-
-  if (settings.llm_api_key) {
-    llm.api_key = settings.llm_api_key;
-  }
-  if (settings.llm_base_url) {
-    llm.base_url = settings.llm_base_url;
-  }
-
-  const agent: Record<string, unknown> = {
-    kind: "Agent",
-    llm,
-    tools: getAgentTools(),
-  };
+  const agentSettings = buildConfiguredAgentSettings(options.settings);
+  const agent = createAgentFromSettings(agentSettings);
+  const conversationSettings = buildConfiguredConversationSettings(options);
 
   const payload: Record<string, unknown> = {
     agent,
-    workspace: {
-      kind: "LocalWorkspace",
-      working_dir: getAgentServerWorkingDir(),
-    },
-    confirmation_policy: getConfirmationPolicy(settings),
-    max_iterations: settings.max_iterations ?? 500,
+    workspace: conversationSettings.workspace,
+    confirmation_policy:
+      getConversationConfirmationPolicy(conversationSettings),
+    max_iterations:
+      typeof conversationSettings.max_iterations === "number"
+        ? conversationSettings.max_iterations
+        : 500,
     stuck_detection: true,
     autotitle: true,
   };
 
-  const securityAnalyzer = getSecurityAnalyzer(settings);
+  const securityAnalyzer =
+    getConversationSecurityAnalyzer(conversationSettings);
   if (securityAnalyzer) {
     payload.security_analyzer = securityAnalyzer;
   }
 
-  const initialMessage = buildInitialMessage(query, conversationInstructions);
-  if (initialMessage) {
-    payload.initial_message = initialMessage;
+  if (conversationSettings.initial_message) {
+    payload.initial_message = conversationSettings.initial_message;
   }
 
-  if (plugins?.length) {
-    payload.plugins = plugins.map((plugin) => ({
-      source: plugin.source,
-      ...(plugin.ref ? { ref: plugin.ref } : {}),
-      ...(plugin.repo_path ? { repo_path: plugin.repo_path } : {}),
-    }));
+  if (conversationSettings.plugins) {
+    payload.plugins = conversationSettings.plugins;
+  }
+
+  if (conversationSettings.hook_config) {
+    payload.hook_config = conversationSettings.hook_config;
+  }
+
+  if (conversationSettings.tool_module_qualnames) {
+    payload.tool_module_qualnames = conversationSettings.tool_module_qualnames;
+  }
+
+  if (conversationSettings.agent_definitions) {
+    payload.agent_definitions = conversationSettings.agent_definitions;
   }
 
   return payload;
 }
 
 export async function downloadTextFile(path: string): Promise<string> {
-  const response = await createHttpClient().get<ArrayBuffer>("/api/file/download", {
-    params: { path },
-    responseType: "arrayBuffer",
-  });
+  const response = await createHttpClient().get<ArrayBuffer>(
+    "/api/file/download",
+    {
+      params: { path },
+      responseType: "arrayBuffer",
+    },
+  );
 
   return new TextDecoder().decode(response.data);
 }
 
-export function createSandboxInfo(conversation: V1AppConversation): V1SandboxInfo {
-  const exposed_urls = getConfiguredWorkerUrls().map((url, index) => ({
+export function createSandboxInfo(
+  conversation: V1AppConversation,
+): V1SandboxInfo {
+  const exposedUrls = getConfiguredWorkerUrls().map((url, index) => ({
     name: `WORKER_${index + 1}`,
     url,
   }));
@@ -260,20 +413,23 @@ export function createSandboxInfo(conversation: V1AppConversation): V1SandboxInf
     sandbox_spec_id: conversation.sandbox_id,
     status: conversation.sandbox_status,
     session_api_key: conversation.session_api_key,
-    exposed_urls,
+    exposed_urls: exposedUrls,
     created_at: conversation.created_at,
   };
 }
 
 export async function loadSkillsForConversation(
-  _conversation: V1AppConversation | null | undefined,
+  conversation: V1AppConversation | null | undefined,
 ): Promise<GetSkillsResponse> {
+  const projectDir =
+    conversation?.workspace?.working_dir ?? getAgentServerWorkingDir();
+
   const response = await createSkillsClient().getSkills({
     load_public: true,
     load_user: true,
     load_project: true,
     load_org: false,
-    project_dir: getAgentServerWorkingDir(),
+    project_dir: projectDir,
   });
 
   return { skills: response.skills ?? [] };
