@@ -1,22 +1,11 @@
-import { execFile } from "node:child_process";
-import process from "node:process";
-import { promisify } from "node:util";
+// @vitest-environment node
+import viteConfig from "../vite.config";
 import { describe, expect, it } from "vitest";
-
-const execFileAsync = promisify(execFile);
 
 describe("vite optimizeDeps", () => {
   it("prebundles core client entry dependencies", async () => {
-    const { stdout } = await execFileAsync(
-      process.execPath,
-      [
-        "-e",
-        `import viteConfig from './vite.config.ts'; const config = await viteConfig({ mode: 'development', command: 'serve' }); console.log(JSON.stringify(config.optimizeDeps?.include ?? []));`,
-      ],
-      { cwd: process.cwd() },
-    );
-
-    const optimizedDeps = JSON.parse(stdout.trim()) as string[];
+    const config = await viteConfig({ mode: "development", command: "serve" });
+    const optimizedDeps = config.optimizeDeps?.include ?? [];
 
     expect(optimizedDeps).toEqual(
       expect.arrayContaining([
