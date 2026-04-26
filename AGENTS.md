@@ -69,3 +69,8 @@
   - `.openhands/setup.sh` installs frontend dependencies with `npm ci` when needed, creates `.env` from `.env.sample` if missing, appends `VITE_WORKING_DIR` for this repo when unset, and generates `src/i18n/declaration.ts` via `npm run make-i18n`.
   - `.openhands/pre-commit.sh` mirrors the repo's local quality gate with `npm run lint && npm run test`.
 - `.github/workflows/pr-review.yml` is configured for on-demand OpenHands reviews only (`review-this` label or requesting `openhands-agent` / `all-hands-bot`), uses the OpenHands app LLM proxy defaults, and expects a repository `LLM_API_KEY` secret.
+- HeroUI v3 migration notes:
+  - `@heroui/react` no longer exports the old Tailwind `heroui()` plugin or v2 autocomplete item/section components; `hero.ts` / `tailwind.config.js` should not import `heroui` from `@heroui/react`.
+  - Tailwind v4 integration now works by importing `@heroui/styles/themes/default` in `src/tailwind.css` and sourcing the v3 package files from `node_modules/@heroui/react/dist/**/*`.
+  - For settings-style dropdowns, the previous `Autocomplete` + `AutocompleteItem`/`AutocompleteSection` API is incompatible with v3; this repo now uses a lightweight custom input/dropdown implementation in `src/components/features/settings/settings-dropdown-input.tsx`, and `ModelSelector` builds on that wrapper.
+
