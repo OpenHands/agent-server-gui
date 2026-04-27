@@ -8,6 +8,36 @@ import { pathToFileURL } from "node:url";
 const DEFAULT_BACKEND_PORT = 18000;
 const DEFAULT_WAIT_TIMEOUT_MS = 30_000;
 
+function isEnoentError(error) {
+  return Boolean(
+    (error && typeof error === "object" && "code" in error && error.code === "ENOENT") ||
+      /ENOENT/.test(String(error)),
+  );
+}
+
+export function formatMissingAgentServerGuidance(cwd = process.cwd()) {
+  const readmePath = path.join(cwd, "README.md");
+
+  return [
+    "Failed to start agent-server. Make sure it is installed and on your PATH.",
+    "",
+    "To fix this:",
+    "1. Install the backend CLI:",
+    "   uv tool install -U --with openhands-tools --with openhands-workspace openhands-agent-server",
+    "2. Make sure the uv tool bin dir is on your PATH:",
+    '   export PATH="$HOME/.local/bin:$PATH"',
+    "   command -v agent-server",
+    "",
+    "Need Windows or another install method? https://docs.astral.sh/uv/getting-started/installation/",
+    `See the local Quickstart for details: ${readmePath}`,
+    "- README > Quickstart > 2. Install OpenHands Agent Server",
+    "",
+    "Other options:",
+    "- npm run dev:frontend   # use an already running backend",
+    "- npm run dev:mock       # run the frontend with mock APIs",
+  ].join("\n");
+}
+
 function parsePort(value, fallback) {
   if (value == null || value === "") {
     return fallback;
@@ -66,7 +96,9 @@ function spawnProcess(command, args, options) {
   const child = spawn(command, args, { stdio: "inherit", ...options });
 
   child.once("error", (error) => {
-    if ((error && "code" in error && error.code === "ENOENT") || /ENOENT/.test(String(error))) {
+    if (isEnoentError(error) && command === "agent-server") {
+      console.error(formatMissingAgentServerGuidance(options?.cwd));
+    } else if (isEnoentError(error)) {
       console.error(`Failed to start ${command}. Make sure it is installed and on your PATH.`);
     } else {
       console.error(`Failed to start ${command}:`, error);

@@ -5,12 +5,37 @@ import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buildSafeDevConfig } from "../../scripts/dev-safe.mjs";
+import {
+  buildSafeDevConfig,
+  formatMissingAgentServerGuidance,
+} from "../../scripts/dev-safe.mjs";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
+
+
+describe("formatMissingAgentServerGuidance", () => {
+  it("includes install, PATH, README, and fallback workflow hints", () => {
+    const guidance = formatMissingAgentServerGuidance(
+      "/workspace/project/agent-server-gui",
+    );
+
+    expect(guidance).toContain(
+      "uv tool install -U --with openhands-tools --with openhands-workspace openhands-agent-server",
+    );
+    expect(guidance).toContain('export PATH="$HOME/.local/bin:$PATH"');
+    expect(guidance).toContain(
+      "/workspace/project/agent-server-gui/README.md",
+    );
+    expect(guidance).toContain(
+      "https://docs.astral.sh/uv/getting-started/installation/",
+    );
+    expect(guidance).toContain("npm run dev:frontend");
+    expect(guidance).toContain("npm run dev:mock");
+  });
+});
 
 describe("buildSafeDevConfig", () => {
   it("builds isolated default paths and ports", () => {
@@ -89,6 +114,14 @@ describe("dev-safe CLI startup", () => {
     expect(exitResult.timedOut).toBe(false);
     expect(exitResult.code).toBe(1);
     expect(output).toContain("Failed to start agent-server");
+    expect(output).toContain(
+      "uv tool install -U --with openhands-tools --with openhands-workspace openhands-agent-server",
+    );
+    expect(output).toContain(
+      "https://docs.astral.sh/uv/getting-started/installation/",
+    );
+    expect(output).toContain("README.md");
+    expect(output).toContain("npm run dev:mock");
     expect(output).toContain("spawn agent-server ENOENT");
   });
 });
